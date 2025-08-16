@@ -1,11 +1,11 @@
 -- Select the database
-USE hacknyu25;
+USE hacknyu25_test;
 
 -- Create the user table (renamed to user_account)
 CREATE TABLE user_account (
     user_ID VARCHAR(50),
     email VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(50) NOT NULL,
+    password VARCHAR(72) NOT NULL,
     first_name VARCHAR(50),
     last_name VARCHAR(50),
     timezone VARCHAR(50) DEFAULT 'America/Los_Angeles',
@@ -14,13 +14,35 @@ CREATE TABLE user_account (
     subscription_tier ENUM('free', 'premium') DEFAULT 'free' NOT NULL,
     subscription_start_date TIMESTAMP NULL,
     subscription_end_date TIMESTAMP NULL,
-    subscription_status ENUM('active', 'expired', 'cancelled') DEFAULT 'active' NOT NULL;
+    subscription_status ENUM('active', 'expired', 'cancelled') DEFAULT 'active' NOT NULL,
     PRIMARY KEY (user_ID)
 );
 
 CREATE INDEX idx_subscription_tier ON user_account(subscription_tier);
 CREATE INDEX idx_subscription_status ON user_account(subscription_status);
 CREATE INDEX idx_subscription_end_date ON user_account(subscription_end_date);
+
+-- Create meal_plan_sessions table for storing meal planning sessions
+CREATE TABLE meal_plan_sessions (
+    session_id INT AUTO_INCREMENT,
+    user_id VARCHAR(50) NOT NULL,
+    session_name VARCHAR(100) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    total_days INT NOT NULL,
+    dietary_preference VARCHAR(50) DEFAULT 'none', -- vegetarian, vegan, keto, paleo, etc.
+    budget_limit DECIMAL(10, 2),
+    max_cooking_time INT NULL, -- minutes per day
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('active', 'completed', 'archived') DEFAULT 'active',
+    ai_model_used VARCHAR(50) DEFAULT 'gemini-1.5-flash-latest',
+    generation_prompt TEXT NULL, -- store the prompt used for generation
+    PRIMARY KEY (session_id),
+    FOREIGN KEY (user_id) REFERENCES user_account(user_ID),
+    INDEX idx_user_sessions (user_id),
+    INDEX idx_session_dates (start_date, end_date),
+    INDEX idx_session_status (status)
+);
 
 -- Create the shopping_lists table (list metadata)
 CREATE TABLE shopping_lists (
@@ -314,28 +336,6 @@ CREATE TABLE template_ingredients (
     INDEX idx_ingredient_name (ingredient_name)
 );
 
--- Create meal_plan_sessions table for storing meal planning sessions
-CREATE TABLE meal_plan_sessions (
-    session_id INT AUTO_INCREMENT,
-    user_id VARCHAR(50) NOT NULL,
-    session_name VARCHAR(100) NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    total_days INT NOT NULL,
-    dietary_preference VARCHAR(50) DEFAULT 'none', -- vegetarian, vegan, keto, paleo, etc.
-    budget_limit DECIMAL(10, 2),
-    max_cooking_time INT NULL, -- minutes per day
-    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('active', 'completed', 'archived') DEFAULT 'active',
-    ai_model_used VARCHAR(50) DEFAULT 'gemini-1.5-flash-latest',
-    generation_prompt TEXT NULL, -- store the prompt used for generation
-    PRIMARY KEY (session_id),
-    FOREIGN KEY (user_id) REFERENCES user_account(user_ID),
-    INDEX idx_user_sessions (user_id),
-    INDEX idx_session_dates (start_date, end_date),
-    INDEX idx_session_status (status)
-);
-
 -- Create meals table for storing individual meal instances
 CREATE TABLE meals (
     meal_id INT AUTO_INCREMENT,
@@ -621,7 +621,7 @@ CREATE TABLE user_nutrition_goals (
     fiber_type ENUM('goal', 'limit') DEFAULT 'goal',
   
     daily_sodium_limit_mg DECIMAL(10,2) NULL,
-    sodium_type ENUM('goal', 'limit') DEFAULT 'limit';
+    sodium_type ENUM('goal', 'limit') DEFAULT 'limit',
     
     -- Goal settings
     goal_type ENUM('weight_loss', 'weight_gain', 'maintenance', 'muscle_gain', 'custom') DEFAULT 'maintenance',
@@ -841,7 +841,7 @@ CREATE TABLE IF NOT EXISTS tips (
 -- Table to track which tips each user has seen and when
 CREATE TABLE IF NOT EXISTS user_tip_history (
     history_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id VARCHAR(50) NOT NULL,
     tip_id INT NOT NULL,
     shown_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES user_account(user_ID) ON DELETE CASCADE,
