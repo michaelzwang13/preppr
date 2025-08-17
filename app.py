@@ -1,12 +1,21 @@
 from src import create_app
-from flask import jsonify
+import os
+import argparse
 
 # Create the application instance using the factory
 app = create_app()
 
 if __name__ == '__main__':
-    # app.run(host='127.0.0.1', port=5001, debug=True)
+    parser = argparse.ArgumentParser(description='Run Flask app')
+    parser.add_argument('--local', action='store_true', help='Run locally (127.0.0.1:5001)')
+    args = parser.parse_args()
     
-    # The host must be set to '0.0.0.0' to be accessible from outside the container
-    # if you are using Docker
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    # Check for local flag or LOCAL environment variable
+    is_local = args.local or os.getenv('LOCAL', 'false').lower() == 'true'
+    
+    if is_local:
+        # Local development
+        app.run(host='127.0.0.1', port=5001, debug=True)
+    else:
+        # Docker/production
+        app.run(host="0.0.0.0", port=8080, debug=True)
