@@ -153,3 +153,6 @@ logs/
 
 # mobile
 preppr-mobile/
+
+# shell scripts
+*.sh
