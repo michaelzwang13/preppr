@@ -76,6 +76,8 @@ def create_app():
     app.register_blueprint(tips.tips_bp)  # Daily tips API
     app.register_blueprint(nutrition.nutrition_bp)  # Nutrition goals and analytics API
     
+    from src.health import health_bp
+    app.register_blueprint(health_bp)
     
     logger.info("Blueprints registered successfully")
 
