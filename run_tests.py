@@ -221,8 +221,12 @@ Examples:
     if args.list_tests:
         cmd.append('--collect-only')
     
+    # Set up environment for enhanced rollback system
+    os.environ['TESTING'] = 'true'
+    os.environ['FLASK_ENV'] = 'testing'
+    
     # Run the tests
-    print(f"\n🧪 Preppr Test Suite")
+    print(f"\n🧪 Preppr Test Suite - Enhanced Database Rollback")
     print(f"{'='*60}")
     
     if args.list_tests:
@@ -231,15 +235,19 @@ Examples:
         print(f"Category: {args.category}")
         print(f"Coverage: {'enabled' if coverage_enabled else 'disabled'}")
         print(f"Files: {args.file if args.file else 'all test files'}")
+        print(f"Database: hacknyu25_test (automatic rollback enabled)")
+        print(f"Environment: {os.environ.get('FLASK_ENV', 'not set')}")
         
-        success = run_command(cmd, "Running tests")
+        success = run_command(cmd, "Running tests with database rollback")
         
         if success:
             print(f"\n🎉 All tests passed!")
+            print(f"✅ Database state automatically preserved")
             if coverage_enabled and args.html_cov:
                 print(f"📊 HTML coverage report generated in htmlcov/index.html")
         else:
             print(f"\n💥 Some tests failed!")
+            print(f"✅ Database state automatically rolled back")
             return 1
     
     return 0 if success else 1

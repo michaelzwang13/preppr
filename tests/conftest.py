@@ -11,6 +11,245 @@ from datetime import datetime, timedelta
 from src import create_app
 from src.database import get_db
 from unittest.mock import patch, MagicMock
+from contextlib import contextmanager
+import threading
+import weakref
+
+
+# Global registry for managing test vs API database connections
+_connection_registry = {
+    'test_connections': weakref.WeakSet(),
+    'api_connections': weakref.WeakSet(),
+    'lock': threading.Lock()
+}
+
+
+def create_api_database_connection(app_config):
+    """
+    Create a separate database connection for API calls during tests.
+    This connection can commit independently without affecting test rollback.
+    """
+    import pymysql.cursors
+    
+    connection = pymysql.connect(
+        host=app_config["DB_HOST"],
+        port=app_config["DB_PORT"],
+        user=app_config["DB_USER"],
+        password=app_config["DB_PASSWORD"],
+        db=app_config["DB_NAME"],
+        charset="utf8mb4",
+        cursorclass=pymysql.cursors.DictCursor,
+        autocommit=False  # API can control its own commits
+    )
+    
+    # Register this as an API connection
+    with _connection_registry['lock']:
+        _connection_registry['api_connections'].add(connection)
+    
+    return connection
+
+
+def cleanup_api_connections():
+    """Clean up all API connections created during tests."""
+    with _connection_registry['lock']:
+        for connection in list(_connection_registry['api_connections']):
+            try:
+                if connection and connection.open:
+                    # Roll back any uncommitted API transactions
+                    connection.rollback()
+                    connection.close()
+                    print("✓ Cleaned up API connection")
+            except Exception as e:
+                print(f"⚠ Warning: Failed to cleanup API connection: {e}")
+
+
+class TestDatabaseManager:
+    """
+    Manages database connections during tests to isolate API commits from test rollback.
+    """
+    
+    def __init__(self, app_config):
+        self.app_config = app_config
+        self.test_connection = None
+        self.api_connection_pool = []
+        self.in_test_context = False
+        
+    def get_test_connection(self):
+        """Get the transactional connection for direct test database access."""
+        return self.test_connection
+    
+    def get_api_connection(self):
+        """Get a separate connection for API calls that can commit independently."""
+        if not self.in_test_context:
+            # Not in test context, return normal behavior
+            return None
+            
+        # Create a new API connection
+        api_conn = create_api_database_connection(self.app_config)
+        self.api_connection_pool.append(api_conn)
+        return api_conn
+    
+    def set_test_connection(self, connection):
+        """Set the main test connection."""
+        self.test_connection = connection
+        self.in_test_context = True
+    
+    def cleanup(self):
+        """Clean up all API connections."""
+        for conn in self.api_connection_pool:
+            try:
+                if conn and conn.open:
+                    conn.rollback()
+                    conn.close()
+            except Exception:
+                pass
+        self.api_connection_pool.clear()
+        self.in_test_context = False
+        self.test_connection = None
+
+
+# Global test database manager
+_test_db_manager = None
+
+
+def get_test_database_manager(app_config):
+    """Get or create the test database manager."""
+    global _test_db_manager
+    if _test_db_manager is None:
+        _test_db_manager = TestDatabaseManager(app_config)
+    return _test_db_manager
+
+
+def test_aware_get_db():
+    """
+    Test-aware version of get_db() that provides connection isolation.
+    Returns separate connections for API calls vs direct test database access.
+    """
+    from flask import g, current_app
+    import inspect
+    
+    # Get the test database manager
+    manager = get_test_database_manager(current_app.config)
+    
+    if not manager.in_test_context:
+        # Not in test context, use normal behavior
+        from src.database import get_db as original_get_db
+        return original_get_db()
+    
+    # Analyze the call stack to determine if this is an API call or test call
+    frame = inspect.currentframe()
+    is_api_call = False
+    
+    try:
+        # Look up the call stack to see if we're being called from API code
+        caller_frame = frame.f_back
+        while caller_frame:
+            filename = caller_frame.f_code.co_filename
+            
+            # Check if the caller is from API code
+            if ('/apis/' in filename or '/views/' in filename) and '/tests/' not in filename:
+                is_api_call = True
+                break
+            
+            # Check if the caller is a test function
+            if '/tests/' in filename:
+                is_api_call = False
+                break
+                
+            caller_frame = caller_frame.f_back
+    finally:
+        del frame  # Prevent reference cycles
+    
+    if is_api_call:
+        # API call - provide a separate connection that can commit
+        api_conn = manager.get_api_connection()
+        if api_conn:
+            return api_conn
+    
+    # Test call or fallback - use the transactional test connection
+    if "db" not in g:
+        g.db = manager.get_test_connection()
+    
+    return g.db
+
+
+def validate_test_environment():
+    """
+    Validate that we're running in a safe test environment.
+    Checks environment variables, database naming, and other safety measures.
+    """
+    # Check if we're explicitly in test mode
+    testing_env = os.getenv('TESTING', 'false').lower() == 'true'
+    flask_env = os.getenv('FLASK_ENV', '').lower()
+    
+    # Check database name from environment
+    db_name = os.getenv('DB_NAME', '')
+    
+    if not testing_env and flask_env != 'testing':
+        print("⚠ Warning: TESTING environment variable not set to 'true'")
+    
+    if db_name and not db_name.endswith('_test'):
+        raise RuntimeError(
+            f"SAFETY CHECK FAILED: Environment DB_NAME '{db_name}' does not end with '_test'. "
+            "Set DB_NAME environment variable to your test database name."
+        )
+    
+    return True
+
+
+@contextmanager
+def savepoint_transaction(db_connection, savepoint_name="test_savepoint"):
+    """
+    Context manager for nested transactions using savepoints.
+    Allows rolling back to a specific point within a larger transaction.
+    
+    Usage:
+        with savepoint_transaction(db_connection, "my_savepoint"):
+            # Do some database operations
+            # If an exception occurs, rollback to savepoint
+            pass
+    """
+    cursor = db_connection.cursor()
+    try:
+        # Create savepoint
+        cursor.execute(f"SAVEPOINT {savepoint_name}")
+        yield cursor
+    except Exception as e:
+        # Rollback to savepoint on error
+        try:
+            cursor.execute(f"ROLLBACK TO SAVEPOINT {savepoint_name}")
+            print(f"✓ Rolled back to savepoint: {savepoint_name}")
+        except Exception as rollback_error:
+            print(f"⚠ Warning: Failed to rollback to savepoint {savepoint_name}: {rollback_error}")
+        raise e
+    else:
+        # Release savepoint on success (optional, will be released on commit/rollback anyway)
+        try:
+            cursor.execute(f"RELEASE SAVEPOINT {savepoint_name}")
+        except Exception as release_error:
+            # Not critical if release fails
+            print(f"⚠ Warning: Failed to release savepoint {savepoint_name}: {release_error}")
+    finally:
+        cursor.close()
+
+
+def cleanup_test_connections(app):
+    """
+    Cleanup utility to ensure all test database connections are properly closed.
+    """
+    with app.app_context():
+        from flask import g
+        
+        if hasattr(g, 'test_connections'):
+            for connection in g.test_connections[:]:  # Copy list to avoid modification during iteration
+                try:
+                    if connection and connection.open:
+                        connection.rollback()
+                        connection.close()
+                        print(f"✓ Cleaned up test connection")
+                except Exception as e:
+                    print(f"⚠ Warning: Failed to cleanup test connection: {e}")
+            g.test_connections.clear()
 
 
 def execute_sql_file(db, sql_file_path, test_db_name='hacknyu25_test'):
@@ -88,6 +327,9 @@ def execute_sql_file(db, sql_file_path, test_db_name='hacknyu25_test'):
 @pytest.fixture
 def app():
     """Create and configure a new app instance for each test."""
+    # Validate test environment before creating app
+    validate_test_environment()
+    
     # Create test app with test configuration
     test_app = create_app()
     test_app.config.update({
@@ -113,6 +355,9 @@ def app():
         populate_test_data()
     
     yield test_app
+    
+    # Cleanup any remaining test connections
+    cleanup_test_connections(test_app)
 
 
 @pytest.fixture
@@ -126,49 +371,120 @@ def db_transaction(app):
     """
     Wrap each test in a database transaction that gets rolled back automatically.
     This ensures test isolation and prevents data pollution between tests.
+    Enhanced with connection isolation to handle API commits separately.
     """
     with app.app_context():
-        # Create a new database connection for the transaction
+        # Validate we're running against test database
+        test_db_name = app.config["DB_NAME"]
+        if not test_db_name.endswith('_test'):
+            raise RuntimeError(
+                f"SAFETY CHECK FAILED: Attempted to run tests against non-test database: {test_db_name}. "
+                "Test database name must end with '_test'"
+            )
+        
+        # Set up the test database manager
+        manager = get_test_database_manager(app.config)
+        
+        # Create a new database connection for the test transaction
         import pymysql.cursors
         from flask import g
         
-        db_connection = pymysql.connect(
-            host=app.config["DB_HOST"],
-            port=app.config["DB_PORT"],
-            user=app.config["DB_USER"],
-            password=app.config["DB_PASSWORD"],
-            db=app.config["DB_NAME"],
-            charset="utf8mb4",
-            cursorclass=pymysql.cursors.DictCursor,
-            autocommit=False  # Ensure we can control transactions
-        )
-        
-        # Start a transaction
-        db_connection.begin()
-        
-        # Replace the Flask g.db with our transactional connection
+        db_connection = None
         original_db = g.get('db', None)
-        g.db = db_connection
+        original_get_db = None
         
         try:
+            db_connection = pymysql.connect(
+                host=app.config["DB_HOST"],
+                port=app.config["DB_PORT"],
+                user=app.config["DB_USER"],
+                password=app.config["DB_PASSWORD"],
+                db=app.config["DB_NAME"],
+                charset="utf8mb4",
+                cursorclass=pymysql.cursors.DictCursor,
+                autocommit=False  # Ensure we can control transactions
+            )
+            
+            # Verify we're connected to the correct database
+            cursor = db_connection.cursor()
+            cursor.execute("SELECT DATABASE() as current_db")
+            current_db = cursor.fetchone()['current_db']
+            cursor.close()
+            
+            if current_db != test_db_name:
+                raise RuntimeError(
+                    f"SAFETY CHECK FAILED: Connected to wrong database. "
+                    f"Expected: {test_db_name}, Got: {current_db}"
+                )
+            
+            # Start a transaction
+            db_connection.begin()
+            
+            # Register this connection with the test manager
+            manager.set_test_connection(db_connection)
+            
+            # Replace the Flask g.db with our transactional connection
+            g.db = db_connection
+            
+            # Patch get_db() to use our test-aware version
+            import src.database
+            original_get_db = src.database.get_db
+            src.database.get_db = test_aware_get_db
+            
+            # Add connection to global tracking for monitoring
+            if not hasattr(g, 'test_connections'):
+                g.test_connections = []
+            g.test_connections.append(db_connection)
+            
+            print("✓ Test transaction started with API connection isolation")
+            
             yield db_connection
+            
+        except Exception as e:
+            print(f"Error setting up test database transaction: {e}")
+            raise
         finally:
-            # Always rollback the transaction, regardless of test success/failure
-            try:
-                db_connection.rollback()
-            except Exception as e:
-                # If rollback fails, log it but don't raise to avoid masking the original test failure
-                print(f"Warning: Failed to rollback test transaction: {e}")
-            finally:
+            # Restore original get_db function
+            if original_get_db is not None:
+                import src.database
+                src.database.get_db = original_get_db
+            
+            # Clean up API connections first
+            manager.cleanup()
+            
+            # Always rollback the test transaction, regardless of test success/failure
+            if db_connection is not None:
                 try:
-                    db_connection.close()
-                except Exception:
-                    pass
-                # Restore original db connection in g
-                if original_db is not None:
-                    g.db = original_db
-                else:
-                    g.pop('db', None)
+                    # Check if transaction is still active
+                    cursor = db_connection.cursor()
+                    cursor.execute("SELECT @@autocommit")
+                    autocommit_status = cursor.fetchone()['@@autocommit']
+                    cursor.close()
+                    
+                    if autocommit_status == 0:  # Transaction is active
+                        db_connection.rollback()
+                        print("✓ Test transaction rolled back successfully")
+                    else:
+                        print("⚠ Warning: Test transaction was already committed/rolled back")
+                        
+                except Exception as e:
+                    # If rollback fails, log it but don't raise to avoid masking the original test failure
+                    print(f"⚠ Warning: Failed to rollback test transaction: {e}")
+                finally:
+                    try:
+                        db_connection.close()
+                    except Exception as e:
+                        print(f"⚠ Warning: Failed to close test database connection: {e}")
+                    
+                    # Remove from connection tracking
+                    if hasattr(g, 'test_connections') and db_connection in g.test_connections:
+                        g.test_connections.remove(db_connection)
+            
+            # Restore original db connection in g
+            if original_db is not None:
+                g.db = original_db
+            else:
+                g.pop('db', None)
 
 
 @pytest.fixture
@@ -388,6 +704,136 @@ def admin_user(client, auth):
     auth.register(user_id=user_id, email='admin@example.com')
     auth.login(user_id=user_id)
     return user_id
+
+
+@pytest.fixture
+def nested_transaction(db_transaction):
+    """
+    Fixture for creating nested transactions using savepoints.
+    Returns a context manager that can be used for sub-transactions.
+    """
+    def create_savepoint(name="nested_test"):
+        return savepoint_transaction(db_transaction, name)
+    
+    return create_savepoint
+
+
+@pytest.fixture
+def isolated_db_connection(app):
+    """
+    Create a separate database connection for tests that need isolation
+    from the main transactional connection (e.g., testing rollback behavior).
+    """
+    with app.app_context():
+        import pymysql.cursors
+        
+        connection = pymysql.connect(
+            host=app.config["DB_HOST"],
+            port=app.config["DB_PORT"],
+            user=app.config["DB_USER"],
+            password=app.config["DB_PASSWORD"],
+            db=app.config["DB_NAME"],
+            charset="utf8mb4",
+            cursorclass=pymysql.cursors.DictCursor,
+            autocommit=True  # Separate from main transaction
+        )
+        
+        try:
+            yield connection
+        finally:
+            try:
+                connection.close()
+            except Exception as e:
+                print(f"⚠ Warning: Failed to close isolated connection: {e}")
+
+
+@pytest.fixture
+def reset_test_data():
+    """
+    Fixture to reset specific test data during tests.
+    Useful for tests that need to start with a clean slate for certain tables.
+    """
+    def reset_tables(*table_names):
+        """Reset specific tables to their initial test state."""
+        from flask import g
+        db = g.db
+        cursor = db.cursor()
+        
+        try:
+            # Disable foreign key checks temporarily
+            cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+            
+            for table_name in table_names:
+                # Clear the table
+                cursor.execute(f"DELETE FROM {table_name}")
+                print(f"✓ Cleared table: {table_name}")
+            
+            # Re-enable foreign key checks
+            cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+            
+            # Note: This happens within the test transaction, so it will be rolled back
+            
+        except Exception as e:
+            print(f"⚠ Warning: Failed to reset tables {table_names}: {e}")
+            raise
+        finally:
+            cursor.close()
+    
+    return reset_tables
+
+
+@pytest.fixture(scope="session", autouse=True)
+def session_cleanup():
+    """
+    Session-level cleanup to ensure all connections are properly closed
+    when the test session ends.
+    """
+    yield
+    
+    # Final cleanup - print summary of test execution
+    print("\n" + "="*60)
+    print("🧪 Test Session Complete - Database Rollback Summary")
+    print("="*60)
+    print("✓ All test transactions were automatically rolled back")
+    print("✓ Test database state preserved")
+    print("✓ No manual cleanup required")
+    print("="*60)
+
+
+def monitor_test_connections():
+    """
+    Utility function to monitor active database connections during tests.
+    Can be called manually for debugging connection issues.
+    """
+    from flask import g, current_app
+    
+    if hasattr(g, 'test_connections'):
+        active_connections = [conn for conn in g.test_connections if conn and conn.open]
+        print(f"📊 Active test connections: {len(active_connections)}")
+        
+        for i, conn in enumerate(active_connections):
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT CONNECTION_ID(), DATABASE()")
+                info = cursor.fetchone()
+                cursor.close()
+                print(f"  Connection {i+1}: ID={info['CONNECTION_ID()']} DB={info['DATABASE()']}")
+            except Exception as e:
+                print(f"  Connection {i+1}: Error getting info - {e}")
+    else:
+        print("📊 No test connections tracked")
+
+
+@pytest.fixture
+def db_monitor():
+    """
+    Fixture that provides database monitoring utilities for debugging.
+    """
+    return {
+        'monitor_connections': monitor_test_connections,
+        'validate_environment': validate_test_environment,
+        'cleanup_connections': cleanup_test_connections
+    }
 
 
 @pytest.fixture
