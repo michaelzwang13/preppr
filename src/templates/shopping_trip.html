@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shopping Trip - Preppr</title>
+
+    <!-- Theme initialization (must be first) -->
+    {% include "partials/_theme_init.html" %}
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Base CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/base.css') }}"
+    />
+
+    <!-- QuaggaJS temporarily disabled for UPC testing -->
+
+    <style>
+      /* Responsive Styles */
+      @media (max-width: 768px) {
+        .mobile-menu-btn {
+          display: block;
+        }
+        /* Mobile dropdown adjustments */
+        .dropdown-menu {
+          position: fixed;
+          top: 80px;
+          left: var(--spacing-md);
+          right: var(--spacing-md);
+          min-width: calc(100% - 2 * var(--spacing-md));
+          border-radius: var(--radius-xl);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15),
+            0 8px 16px rgba(0, 0, 0, 0.1);
+          transform: translateY(-20px) scale(0.95);
+          backdrop-filter: blur(20px);
+        }
+        .dropdown-menu::before {
+          display: none;
+        }
+        .nav-dropdown:hover .dropdown-menu,
+        .nav-dropdown.active .dropdown-menu {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .main-content {
+          padding: 100px var(--spacing-md) var(--spacing-lg);
+        }
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      /* Start Shopping Section */
+      .start-shopping-section {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-2xl);
+        margin-bottom: var(--spacing-xl);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-light);
+        text-align: center;
+        animation: fadeInUp 0.8s ease 0.2s both;
+      }
+
+      .start-shopping-icon {
+        width: 80px;
+        height: 80px;
+        background: var(--primary-gradient);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto var(--spacing-lg);
+        color: var(--text-white);
+        font-size: 2rem;
+      }
+
+      .start-shopping-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-md);
+      }
+
+      .start-shopping-description {
+        color: var(--text-secondary);
+        font-size: 1.125rem;
+        margin-bottom: var(--spacing-xl);
+      }
+
+      .start-form {
+        display: flex;
+        gap: var(--spacing-md);
+        max-width: 400px;
+        margin: 0 auto;
+        align-items: end;
+      }
+
+      .form-group {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+      }
+
+      .form-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .form-input {
+        padding: var(--spacing-md);
+        border: 2px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        font-size: 1rem;
+        font-family: var(--font-family);
+        transition: all 0.3s ease;
+        background: var(--bg-primary);
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .btn-primary {
+        background: var(--primary-gradient);
+        color: var(--text-white);
+        border: none;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius-lg);
+        font-size: 1rem;
+        font-family: var(--font-family);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-md);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        white-space: nowrap;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      /* Trip Active Section */
+      .trip-active {
+        animation: fadeInUp 0.8s ease 0.2s both;
+      }
+
+      .trip-header {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        margin-bottom: var(--spacing-xl);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-light);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .trip-info {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-lg);
+      }
+
+      .trip-icon {
+        width: 60px;
+        height: 60px;
+        background: var(--success-gradient);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-white);
+        font-size: 1.5rem;
+      }
+
+      .trip-details h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-xs);
+      }
+
+      .trip-store {
+        color: var(--text-secondary);
+        font-size: 1.125rem;
+      }
+
+      .btn-secondary {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 2px solid var(--border-medium);
+        padding: var(--spacing-sm) var(--spacing-lg);
+        border-radius: var(--radius-lg);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+      }
+
+      .btn-secondary:hover {
+        background: var(--bg-tertiary);
+        transform: translateY(-2px);
+      }
+
+      /* Budget Overview */
+      .budget-overview {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        margin-bottom: var(--spacing-xl);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-light);
+      }
+
+      .budget-header {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .budget-icon {
+        width: 50px;
+        height: 50px;
+        background: var(--warning-gradient);
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-white);
+        font-size: 1.25rem;
+      }
+
+      .budget-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .budget-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--spacing-lg);
+      }
+
+      .budget-stat {
+        text-align: center;
+        padding: var(--spacing-lg);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-light);
+      }
+
+      .budget-stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: var(--spacing-xs);
+      }
+
+      .budget-stat-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* Add Item Section */
+      .add-item-section {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        margin-bottom: var(--spacing-xl);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-light);
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .section-icon {
+        width: 50px;
+        height: 50px;
+        background: var(--accent-gradient);
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-white);
+        font-size: 1.25rem;
+      }
+
+      .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .add-item-form {
+        display: grid;
+        grid-template-columns: 1fr 120px 80px auto;
+        gap: var(--spacing-md);
+        align-items: end;
+      }
+
+      /* Cart Items */
+      .cart-section {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        margin-bottom: var(--spacing-xl);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-light);
+      }
+
+      .cart-items {
+        display: grid;
+        gap: var(--spacing-md);
+      }
+
+      .cart-item {
+        background: var(--bg-secondary);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-lg);
+        border: 1px solid var(--border-light);
+        display: grid;
+        grid-template-columns: 80px 1fr auto auto auto auto;
+        gap: var(--spacing-lg);
+        align-items: center;
+        transition: all 0.3s ease;
+      }
+
+      .cart-item:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .item-image {
+        width: 80px;
+        height: 80px;
+        border-radius: var(--radius-lg);
+        object-fit: cover;
+        background: var(--bg-tertiary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        font-size: 2rem;
+      }
+
+      .item-details {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+      }
+
+      .item-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 1.125rem;
+      }
+
+      .item-price {
+        color: var(--text-secondary);
+        font-size: 1rem;
+      }
+
+      .item-quantity {
+        background: var(--primary-gradient);
+        color: var(--text-white);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-align: center;
+        min-width: 40px;
+      }
+
+      .item-subtotal {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--success-color);
+      }
+
+      .quantity-controls {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        background: var(--bg-primary);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-xs);
+        border: 1px solid var(--border-light);
+      }
+
+      .qty-btn {
+        width: 32px;
+        height: 32px;
+        background: var(--primary-color);
+        color: var(--text-white);
+        border: none;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+      }
+
+      .qty-btn:hover {
+        background: var(--secondary-color);
+        transform: scale(1.05);
+      }
+
+      .qty-btn:disabled {
+        background: var(--text-muted);
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .qty-input {
+        width: 50px;
+        height: 32px;
+        text-align: center;
+        border: none;
+        background: transparent;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .qty-input:focus {
+        outline: none;
+      }
+
+      .item-actions {
+        display: flex;
+        gap: var(--spacing-xs);
+      }
+
+      .delete-btn {
+        width: 36px;
+        height: 36px;
+        background: var(--error-color);
+        color: var(--text-white);
+        border: none;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+      }
+
+      .delete-btn:hover {
+        background: #dc2626;
+        transform: scale(1.05);
+      }
+
+      .empty-cart {
+        text-align: center;
+        padding: var(--spacing-2xl);
+        color: var(--text-muted);
+      }
+
+      .empty-cart-icon {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .empty-cart-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-md);
+      }
+
+      .empty-cart-description {
+        font-size: 1rem;
+        color: var(--text-secondary);
+      }
+
+      /* Action Buttons */
+      .action-buttons {
+        display: flex;
+        gap: var(--spacing-md);
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .btn-success {
+        background: var(--success-gradient);
+        color: var(--text-white);
+        border: none;
+        padding: var(--spacing-md) var(--spacing-xl);
+        border-radius: var(--radius-lg);
+        font-size: 1.125rem;
+        font-family: var(--font-family);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-md);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+      }
+
+      .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .btn-cancel {
+        background: var(--error-gradient);
+        color: var(--text-white);
+        border: none;
+        padding: var(--spacing-md) var(--spacing-xl);
+        border-radius: var(--radius-lg);
+        font-size: 1.125rem;
+        font-family: var(--font-family);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-md);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+      }
+
+      .btn-cancel:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      /* Loading State */
+      .loading {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      /* Impulse Purchase Popup */
+      .impulse-popup {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .impulse-popup-content {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-2xl);
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        box-shadow: var(--shadow-xl);
+        animation: slideIn 0.3s ease;
+      }
+
+      .impulse-icon {
+        width: 80px;
+        height: 80px;
+        background: var(--warning-gradient);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto var(--spacing-lg);
+        color: var(--text-white);
+        font-size: 2rem;
+      }
+
+      .impulse-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-md);
+      }
+
+      .impulse-description {
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-xl);
+        line-height: 1.6;
+      }
+
+      .impulse-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        justify-content: center;
+      }
+
+      .btn-impulse-no {
+        background: var(--primary-gradient);
+        color: var(--text-white);
+        border: none;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius-lg);
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .btn-impulse-yes {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 2px solid var(--border-medium);
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius-lg);
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: scale(0.9) translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+        }
+
+        .main-content {
+          padding: 100px var(--spacing-md) var(--spacing-lg);
+        }
+
+        .start-form {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .add-item-form {
+          grid-template-columns: 1fr;
+          gap: var(--spacing-md);
+        }
+
+        .cart-item {
+          grid-template-columns: 1fr;
+          text-align: center;
+          gap: var(--spacing-md);
+        }
+
+        .quantity-controls {
+          justify-self: center;
+        }
+
+        .item-actions {
+          justify-self: center;
+        }
+
+        .budget-stats {
+          grid-template-columns: 1fr;
+        }
+
+        .trip-header {
+          flex-direction: column;
+          gap: var(--spacing-lg);
+          text-align: center;
+        }
+
+        .action-buttons {
+          flex-direction: column;
+        }
+      }
+
+      /* Shopping List Section Styles */
+      .shopping-list-section {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        margin-bottom: var(--spacing-xl);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-light);
+      }
+
+      .shopping-list-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        user-select: none;
+        margin-bottom: var(--spacing-lg);
+        padding: var(--spacing-sm);
+        border-radius: var(--radius-md);
+        transition: background-color 0.2s ease;
+      }
+
+      .shopping-list-header:hover {
+        background: var(--bg-secondary);
+      }
+
+      .shopping-list-header-left {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+      }
+
+      .shopping-list-toggle {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.3s ease, color 0.2s ease;
+        padding: var(--spacing-xs);
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .shopping-list-toggle:hover {
+        color: var(--primary-color);
+        background: rgba(16, 185, 129, 0.1);
+      }
+
+      .shopping-list-toggle.collapsed {
+        transform: rotate(-90deg);
+      }
+
+      .shopping-list-content {
+        transition: all 0.3s ease;
+        overflow: hidden;
+      }
+
+      .shopping-list-content.collapsed {
+        max-height: 0;
+        padding: 0;
+        margin: 0;
+        opacity: 0;
+      }
+
+      .shopping-list-progress {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+      }
+
+      .progress-bar {
+        width: 100px;
+        height: 6px;
+        background: var(--bg-tertiary);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: var(--success-gradient);
+        transition: width 0.3s ease;
+      }
+
+      .shopping-list-items {
+        display: grid;
+        gap: var(--spacing-md);
+      }
+
+      .shopping-list-item {
+        background: var(--bg-secondary);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-lg);
+        border: 1px solid var(--border-light);
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        gap: var(--spacing-lg);
+        align-items: center;
+        transition: all 0.3s ease;
+      }
+
+      .shopping-list-item:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .shopping-list-item.found {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: var(--success-color);
+      }
+
+      .list-item-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+      }
+
+      .list-item-details {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+      }
+
+      .list-item-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 1rem;
+      }
+
+      .list-item-quantity {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+      }
+
+      .list-item-notes {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        font-style: italic;
+      }
+
+      .list-item-status {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .list-item-status.found {
+        color: var(--success-color);
+      }
+
+      .list-item-status.not-found {
+        color: var(--text-muted);
+      }
+
+      .list-item-actions {
+        display: flex;
+        gap: var(--spacing-xs);
+      }
+
+      .btn-list-action {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-family: var(--font-family);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .btn-add-to-cart {
+        background: var(--primary-color);
+        color: white;
+      }
+
+      .btn-add-to-cart:hover {
+        background: var(--secondary-color);
+      }
+
+      .btn-mark-found {
+        background: var(--success-color);
+        color: white;
+      }
+
+      .btn-mark-found:hover {
+        background: #059669;
+      }
+
+      /* Accessibility */
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      /* Barcode scanner styles temporarily removed */
+
+      /* Focus styles for accessibility */
+      .btn-primary:focus,
+      .btn-secondary:focus,
+      .btn-success:focus,
+      .btn-cancel:focus,
+      .form-input:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    {% include "partials/_navbar.html" %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="container">
+        {% if not cart_session %}
+        <!-- No Active Shopping Trip -->
+        <section class="page-header">
+          <h1 class="page-title">Start Shopping Trip</h1>
+        </section>
+
+        <section class="start-shopping-section">
+          <div class="start-shopping-icon">
+            <i class="fas fa-shopping-bag" aria-hidden="true"></i>
+          </div>
+          <h2 class="start-shopping-title">Ready to Shop Smart?</h2>
+          <p class="start-shopping-description">
+            Start a new shopping trip and get personalized recommendations to
+            help you make healthier choices and stay within budget.
+          </p>
+
+          <form
+            action="{{ url_for('shopping.start_shopping') }}"
+            method="POST"
+            class="start-form"
+            id="startShoppingForm"
+          >
+            <div class="form-group">
+              <label for="storeName" class="form-label">Store Name</label>
+              <input
+                type="text"
+                id="storeName"
+                name="storeName"
+                class="form-input"
+                placeholder="e.g., Walmart, Costco"
+                required
+              />
+            </div>
+            <button type="button" class="btn-primary" id="startShoppingBtn">
+              <i class="fas fa-play" aria-hidden="true"></i>
+              Start Shopping
+            </button>
+          </form>
+
+          <!-- Import Shopping List Section -->
+          <div
+            style="
+              margin-top: 2rem;
+              padding-top: 2rem;
+              border-top: 1px solid var(--border-light);
+            "
+          >
+            <h3
+              style="
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: var(--text-primary);
+                margin-bottom: 1rem;
+              "
+            >
+              <i
+                class="fas fa-list-ul"
+                style="margin-right: 0.5rem; color: var(--primary-color)"
+              ></i>
+              Import Existing Shopping List
+            </h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem">
+              Choose a shopping list to use as your guide during this trip
+            </p>
+            <div id="availableListsContainer" style="display: none">
+              <select
+                id="availableListsSelect"
+                class="form-input"
+                style="margin-bottom: 1rem"
+              >
+                <option value="">Select a shopping list...</option>
+              </select>
+            </div>
+            <div style="display: flex; justify-content: center; width: 100%">
+              <button type="button" id="loadListsBtn" class="btn-primary">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                Browse My Lists
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {% else %}
+        <!-- Active Shopping Trip -->
+        <section class="trip-active">
+          <div class="trip-header">
+            <div class="trip-info">
+              <div class="trip-icon">
+                <i class="fas fa-shopping-cart" aria-hidden="true"></i>
+              </div>
+              <div class="trip-details">
+                <h2>Active Shopping Trip</h2>
+                <p class="trip-store">{{ cart_session['store_name'] }}</p>
+              </div>
+            </div>
+            <a href="{{ url_for('shopping.home') }}" class="btn-secondary">
+              <i class="fas fa-arrow-left" aria-hidden="true"></i>
+              Back to Home
+            </a>
+          </div>
+
+          <!-- Budget Overview -->
+          <div class="budget-overview">
+            <div class="budget-header">
+              <div class="budget-icon">
+                <i class="fas fa-wallet" aria-hidden="true"></i>
+              </div>
+              <h3 class="budget-title">Budget Overview</h3>
+            </div>
+            <div class="budget-stats" id="budget-overview">
+              <div class="budget-stat">
+                <div class="budget-stat-value">${{ allocated_budget }}</div>
+                <div class="budget-stat-label">Allocated Budget</div>
+              </div>
+              <div class="budget-stat">
+                <div class="budget-stat-value">${{ total_spent or 0 }}</div>
+                <div class="budget-stat-label">Total Spent</div>
+              </div>
+              <div class="budget-stat">
+                <div class="budget-stat-value">{{ total_items or 0 }}</div>
+                <div class="budget-stat-label">Items in Cart</div>
+              </div>
+              <div class="budget-stat">
+                <div class="budget-stat-value">${{ remaining }}</div>
+                <div class="budget-stat-label">Remaining</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Shopping List Section -->
+          <div
+            class="shopping-list-section"
+            id="shoppingListSection"
+            style="display: none"
+          >
+            <div
+              class="shopping-list-header"
+              onclick="toggleShoppingListSection()"
+            >
+              <div class="shopping-list-header-left">
+                <div class="section-icon">
+                  <i class="fas fa-list-check" aria-hidden="true"></i>
+                </div>
+                <h3 class="section-title">Shopping List Progress</h3>
+                <div
+                  class="shopping-list-progress"
+                  id="shoppingListProgressBar"
+                >
+                  <!-- Progress will be shown here -->
+                </div>
+              </div>
+              <button
+                class="shopping-list-toggle"
+                type="button"
+                aria-label="Toggle shopping list"
+              >
+                <i class="fas fa-chevron-down"></i>
+              </button>
+            </div>
+            <div class="shopping-list-content" id="shoppingListContent">
+              <!-- Shopping list items will be loaded here -->
+            </div>
+          </div>
+
+          <!-- Add Item Section -->
+          <div class="add-item-section">
+            <div class="section-header">
+              <div class="section-icon">
+                <i class="fas fa-plus" aria-hidden="true"></i>
+              </div>
+              <h3 class="section-title">Add Item to Cart</h3>
+            </div>
+
+            <form id="addItemForm" class="add-item-form">
+              <div class="form-group">
+                <label for="itemName" class="form-label"
+                  >Product UPC Code</label
+                >
+                <input
+                  type="text"
+                  id="itemName"
+                  name="itemName"
+                  class="form-input"
+                  placeholder="Enter UPC code (e.g., 028400064057)"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="itemPrice" class="form-label">Price ($)</label>
+                <input
+                  type="text"
+                  inputmode="decimal"
+                  id="itemPrice"
+                  name="itemPrice"
+                  class="form-input"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="itemQty" class="form-label">Quantity</label>
+                <input
+                  type="number"
+                  id="itemQty"
+                  name="itemQty"
+                  class="form-input"
+                  min="1"
+                  value="1"
+                  required
+                />
+              </div>
+
+              <button type="submit" class="btn-primary">
+                <i class="fas fa-cart-plus" aria-hidden="true"></i>
+                Add to Cart
+              </button>
+            </form>
+          </div>
+
+          <!-- Cart Items -->
+          <div class="cart-section">
+            <div class="section-header">
+              <div class="section-icon">
+                <i class="fas fa-shopping-basket" aria-hidden="true"></i>
+              </div>
+              <h3 class="section-title">Cart Items</h3>
+            </div>
+
+            <div class="cart-items" id="cart-items-container">
+              {% if cart_items %} {% for item in cart_items %}
+              <div class="cart-item" data-item-id="{{ item.item_ID }}">
+                <div class="item-image">
+                  {% if item.image_url %}
+                  <img
+                    src="{{ item.image_url }}"
+                    alt="{{ item.item_name }}"
+                    class="item-image"
+                  />
+                  {% else %}
+                  <i class="fas fa-image" aria-hidden="true"></i>
+                  {% endif %}
+                </div>
+                <div class="item-details">
+                  <div class="item-name">{{ item.item_name }}</div>
+                  <div class="item-price">
+                    ${{ "%.2f"|format(item.price) }} each
+                  </div>
+                </div>
+                <div class="quantity-controls">
+                  <button
+                    class="qty-btn qty-decrease"
+                    data-item-id="{{ item.item_ID }}"
+                    data-action="decrease"
+                    {% if item.quantity <= 1 %}disabled{% endif %}
+                  >
+                    <i class="fas fa-minus"></i>
+                  </button>
+                  <input
+                    type="number"
+                    class="qty-input"
+                    value="{{ item.quantity }}"
+                    min="1"
+                    max="999"
+                    data-item-id="{{ item.item_ID }}"
+                    onblur="this.value = Math.max(1, parseInt(this.value) || 1)"
+                  />
+                  <button
+                    class="qty-btn qty-increase"
+                    data-item-id="{{ item.item_ID }}"
+                    data-action="increase"
+                  >
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
+                <div class="item-subtotal">
+                  ${{ "%.2f"|format(item.price * item.quantity) }}
+                </div>
+                <div class="item-actions">
+                  <button
+                    class="delete-btn"
+                    data-item-id="{{ item.item_ID }}"
+                    title="Remove item"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              {% endfor %} {% else %}
+              <div class="empty-cart">
+                <div class="empty-cart-icon">
+                  <i class="fas fa-shopping-cart" aria-hidden="true"></i>
+                </div>
+                <h4 class="empty-cart-title">Your cart is empty</h4>
+                <p class="empty-cart-description">
+                  Start adding items to see them here
+                </p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="action-buttons">
+            <form
+              action="{{ url_for('shopping.finish_shopping') }}"
+              method="POST"
+              style="display: inline"
+            >
+              <button type="submit" class="btn-success">
+                <i class="fas fa-check" aria-hidden="true"></i>
+                Complete Shopping
+              </button>
+            </form>
+
+            <form
+              action="{{ url_for('shopping.cancel_shopping') }}"
+              method="POST"
+              style="display: inline"
+            >
+              <button
+                type="submit"
+                class="btn-cancel"
+                onclick="return confirm('Are you sure you want to cancel this shopping trip? All items will be removed.')"
+              >
+                <i class="fas fa-times" aria-hidden="true"></i>
+                Cancel Trip
+              </button>
+            </form>
+          </div>
+        </section>
+        {% endif %}
+      </div>
+    </main>
+
+    {% include "partials/_footer.html" %}
+  </body>
+
+  <script>
+    // Pass server data to JavaScript
+    window.SHOPPING_TRIP_CONFIG = {
+      allocatedBudget: JSON.parse(
+        "{{ allocated_budget | default(1000) | tojson }}"
+      ),
+      remainingBudget: JSON.parse("{{ remaining | default(1000) | tojson }}"),
+      cartSessionExists: JSON.parse(
+        '{{ cart_session | default(false) | tojson }}'
+      ),
+      cartId: JSON.parse(
+        "{{ cart_session.cart_ID if cart_session else null }}"
+      ),
+      urls: {
+        getCartItems: "{{ url_for('shopping_trip.get_cart_items') }}",
+        searchItem: "{{ url_for('shopping_trip.searchitem') }}",
+        addItem: "{{ url_for('shopping_trip.add_item') }}",
+        predict: "{{ url_for('shopping_trip.predict') }}",
+        learn: "{{ url_for('shopping_trip.learn') }}",
+      },
+    };
+  </script>
+  <script src="{{ url_for('static', filename='js/shopping_trip.js') }}"></script>
+</html>

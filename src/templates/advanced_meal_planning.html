@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Meal Planning - Preppr</title>
+
+    <!-- Theme initialization (must be first) -->
+    {% include "partials/_theme_init.html" %}
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Base CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/base.css') }}"
+    />
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <style>
+      html, body {
+        height: 100%;
+      }
+
+      body {
+        padding-top: 80px;
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 80px);
+      }
+
+      main {
+        flex: 1 0 auto;
+      }
+
+      .page-container {
+        max-width: 100%;
+        margin: 0;
+        padding: var(--spacing-md);
+        height: calc(100vh - 80px); /* Account for navbar only */
+        display: flex;
+        flex-direction: column;
+      }
+
+
+      /* Main chatbot container - full page layout */
+      .chatbot-container {
+        display: flex;
+        flex: 1;
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-light);
+        min-height: 0; /* Allow flex shrinking */
+      }
+
+      /* Sidebar styling */
+      .chatbot-sidebar {
+        width: 320px;
+        background: var(--bg-secondary);
+        border-right: 1px solid var(--border-light);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .sidebar-header {
+        padding: var(--spacing-lg);
+        border-bottom: 1px solid var(--border-light);
+        background: var(--bg-primary);
+      }
+
+      .sidebar-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .sidebar-section {
+        padding: var(--spacing-lg);
+        border-bottom: 1px solid var(--border-light);
+      }
+
+      .sidebar-section h4 {
+        margin: 0 0 var(--spacing-md) 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+      }
+
+      .sidebar-section h4 i {
+        color: var(--primary-color);
+        font-size: 0.875rem;
+      }
+
+      .pantry-items-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .pantry-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-sm);
+        background: var(--bg-primary);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+      }
+
+      .pantry-item-name {
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+
+      .pantry-item-amount {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+      }
+
+      .btn-add-pantry,
+      .btn-add-restriction {
+        width: 100%;
+        padding: var(--spacing-sm);
+        background: var(--bg-primary);
+        border: 1px dashed var(--border-medium);
+        border-radius: var(--radius-md);
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xs);
+      }
+
+      .btn-add-pantry:hover,
+      .btn-add-restriction:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+      }
+
+      .food-restrictions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+      }
+
+      .restriction-item {
+        display: flex;
+        gap: var(--spacing-sm);
+        align-items: center;
+      }
+
+      .restriction-input {
+        flex: 1;
+        padding: var(--spacing-sm);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        font-family: var(--font-family);
+      }
+
+      .restriction-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+
+      .btn-remove-restriction {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--text-secondary);
+        transition: all 0.2s ease;
+      }
+
+      .btn-remove-restriction:hover {
+        background: var(--error-color);
+        border-color: var(--error-color);
+        color: white;
+      }
+
+      /* Form select styling */
+      .form-select {
+        width: 100%;
+        padding: var(--spacing-sm);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        font-family: var(--font-family);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .form-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+      }
+
+      .form-select:hover {
+        border-color: var(--border-medium);
+      }
+
+      /* Main chat area */
+      .chatbot-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0; /* Allow flex shrinking */
+      }
+
+      .chatbot-header {
+        padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg);
+        border-bottom: 1px solid var(--border-light);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: var(--text-white);
+      }
+
+      .chatbot-title h3 {
+        margin: 0 0 var(--spacing-sm) 0;
+        font-size: 2rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+      }
+
+      .chatbot-title p {
+        margin: 0;
+        font-size: 1.125rem;
+        opacity: 0.95;
+        font-weight: 400;
+      }
+
+      .chat-messages {
+        flex: 1;
+        padding: var(--spacing-xl);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-lg);
+        background: var(--bg-primary);
+        min-height: 0; /* Allow flex shrinking */
+      }
+
+      .message {
+        display: flex;
+        gap: var(--spacing-md);
+        max-width: 80%;
+      }
+
+      .message.user-message {
+        align-self: flex-end;
+        flex-direction: row-reverse;
+      }
+
+      .message.assistant-message {
+        align-self: flex-start;
+      }
+
+      .message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 1rem;
+      }
+
+      .assistant-message .message-avatar {
+        background: var(--primary-gradient);
+        color: var(--text-white);
+      }
+
+      .user-message .message-avatar {
+        background: var(--secondary-gradient);
+        color: var(--text-white);
+      }
+
+      .message-content {
+        background: var(--bg-secondary);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-lg);
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: var(--text-primary);
+      }
+
+      .user-message .message-content {
+        background: var(--primary-color);
+        color: var(--text-white);
+      }
+
+      .message-content p {
+        margin: 0 0 var(--spacing-sm) 0;
+      }
+
+      .message-content p:last-child {
+        margin-bottom: 0;
+      }
+
+      .chat-input-area {
+        padding: var(--spacing-xl);
+        border-top: 1px solid var(--border-light);
+        background: var(--bg-secondary);
+      }
+
+      .chat-input-wrapper {
+        display: flex;
+        gap: var(--spacing-sm);
+        align-items: flex-end;
+        margin-bottom: var(--spacing-md);
+      }
+
+      .chat-input {
+        flex: 1;
+        min-height: 40px;
+        max-height: 120px;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        font-size: 0.875rem;
+        font-family: var(--font-family);
+        resize: none;
+        line-height: 1.4;
+      }
+
+      .chat-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+
+      .chat-send-btn {
+        width: 40px;
+        height: 40px;
+        background: var(--primary-gradient);
+        border: none;
+        border-radius: 50%;
+        color: var(--text-white);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+      }
+
+      .chat-send-btn:hover:not(:disabled) {
+        transform: scale(1.05);
+        box-shadow: var(--shadow-md);
+      }
+
+      .chat-send-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .chat-suggestions {
+        display: flex;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+      }
+
+      .suggestion-btn {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        background: var(--bg-primary);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .suggestion-btn:hover {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-white);
+      }
+
+      /* Cancel button styling */
+      .cancel-meal-planning {
+        margin-top: auto;
+        padding: var(--spacing-lg);
+        border-top: 1px solid var(--border-light);
+      }
+
+      .cancel-btn {
+        width: 100%;
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: transparent;
+        border: 1px solid var(--border-medium);
+        border-radius: var(--radius-md);
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-sm);
+        cursor: pointer;
+      }
+
+      .cancel-btn:hover {
+        background: var(--error-color);
+        border-color: var(--error-color);
+        color: var(--text-white);
+        transform: translateY(-1px);
+      }
+
+
+      /* Mobile responsive */
+      @media (max-width: 768px) {
+        .page-container {
+          padding: var(--spacing-sm);
+          height: calc(100vh - 80px);
+        }
+
+        .chatbot-container {
+          flex-direction: column;
+          border-radius: var(--radius-md);
+        }
+
+        .chatbot-sidebar {
+          width: 100%;
+          max-height: 35vh;
+          order: 2;
+        }
+
+        .chatbot-main {
+          order: 1;
+          min-height: 65vh;
+        }
+
+        .chatbot-title h3 {
+          font-size: 1.5rem;
+        }
+
+        .chatbot-title p {
+          font-size: 1rem;
+        }
+
+        .message {
+          max-width: 90%;
+        }
+
+        .chat-suggestions {
+          gap: var(--spacing-xs);
+        }
+
+        .suggestion-btn {
+          font-size: 0.7rem;
+          padding: var(--spacing-xs);
+        }
+
+      }
+
+      /* Add pulse animation for typing indicator */
+      @keyframes pulse {
+        0%, 100% { opacity: 0.3; transform: scale(0.8); }
+        50% { opacity: 1; transform: scale(1); }
+      }
+    </style>
+  </head>
+
+  <body>
+    {% include "partials/_navbar.html" %}
+
+    <!-- Main Content -->
+    <main>
+      <div class="page-container">
+
+
+        <!-- Chatbot Interface -->
+        <div class="chatbot-container">
+          <!-- Sidebar for customization options -->
+          <div class="chatbot-sidebar">
+            <div class="sidebar-header">
+              <h3>Customize</h3>
+            </div>
+            
+            <div class="sidebar-section">
+              <h4><i class="fas fa-carrot"></i> Pantry Items</h4>
+              <div class="pantry-items-list" id="pantryItemsList">
+                <!-- Dynamic pantry items will be loaded here -->
+              </div>
+              <button class="btn-add-pantry" id="addPantryBtn">
+                <i class="fas fa-plus"></i> Add Item
+              </button>
+            </div>
+            
+            <div class="sidebar-section">
+              <h4><i class="fas fa-ban"></i> Food Restrictions</h4>
+              <div class="food-restrictions" id="foodRestrictions">
+                <div class="restriction-item">
+                  <input type="text" placeholder="Block ingredients..." class="restriction-input" />
+                  <button class="btn-remove-restriction">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+              <button class="btn-add-restriction" id="addRestrictionBtn">
+                <i class="fas fa-plus"></i> Add Restriction
+              </button>
+            </div>
+            
+            <div class="sidebar-section">
+              <h4><i class="fas fa-heart"></i> Dietary Preferences</h4>
+              <div class="dietary-preferences">
+                <select class="form-select" id="chatDietaryPreference">
+                  <option value="none">No Restrictions</option>
+                  <option value="vegetarian">Vegetarian</option>
+                  <option value="vegan">Vegan</option>
+                  <option value="keto">Keto</option>
+                  <option value="paleo">Paleo</option>
+                  <option value="mediterranean">Mediterranean</option>
+                  <option value="low_carb">Low Carb</option>
+                  <option value="gluten_free">Gluten Free</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Cancel meal planning button at bottom -->
+            <div class="cancel-meal-planning">
+              <a href="{{ url_for('shopping.meal_plans') }}" class="cancel-btn">
+                <i class="fas fa-times"></i>
+                Cancel Meal Planning
+              </a>
+            </div>
+          </div>
+
+          <!-- Main chat interface -->
+          <div class="chatbot-main">
+            <div class="chatbot-header">
+              <div class="chatbot-title">
+                <h3><i class="fas fa-robot"></i> AI Meal Planning Assistant</h3>
+                <p>Tell me what you're looking for and I'll help create the perfect meal plan</p>
+              </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+              <div class="message assistant-message">
+                <div class="message-avatar">
+                  <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                  <p>Hi! I'm your meal planning assistant. I can help you create personalized meal plans based on your pantry items, dietary preferences, and specific requirements.</p>
+                  <p>What kind of meal plan would you like me to create for you?</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="chat-input-area">
+              <div class="chat-input-wrapper">
+                <textarea 
+                  class="chat-input" 
+                  id="chatInput" 
+                  placeholder="Ask me anything about your meal plan..."
+                  rows="1"
+                ></textarea>
+                <button class="chat-send-btn" id="chatSendBtn" disabled>
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+              <div class="chat-suggestions">
+                <button class="suggestion-btn" data-text="Create a 5-day meal plan using chicken and vegetables">
+                  5-day chicken & veggie plan
+                </button>
+                <button class="suggestion-btn" data-text="I need budget-friendly meals under $50">
+                  Budget-friendly options
+                </button>
+                <button class="suggestion-btn" data-text="Suggest meals that use ingredients I already have">
+                  Use my pantry items
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    {% include "partials/_footer.html" %}
+
+    <script>
+      // Pass server data to JavaScript
+      window.NUTRITION_TRACKING_ENABLED = JSON.parse('{{ nutrition_tracking_enabled | tojson }}');
+    </script>
+    <script src="{{ url_for('static', filename='js/subscription-utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/advanced_meal_planning.js') }}"></script>
+  </body>
+</html>

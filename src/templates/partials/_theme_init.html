@@ -1,0 +1,29 @@
+<!-- Theme initialization to prevent flash of unstyled content -->
+<script>
+(function() {
+    'use strict';
+    
+    // Get theme from localStorage or default to light mode immediately
+    function getInitialTheme() {
+        // Check if user has a saved preference in localStorage
+        const savedTheme = localStorage.getItem('theme-preference');
+        if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+            return savedTheme;
+        }
+        
+        // Default to light mode for new users
+        return 'light';
+    }
+    
+    // Apply theme immediately to prevent flash
+    const initialTheme = getInitialTheme();
+    document.documentElement.setAttribute('data-theme', initialTheme);
+    
+    // Set background color immediately
+    if (initialTheme === 'dark') {
+        document.documentElement.style.backgroundColor = '#1f2937';
+    } else {
+        document.documentElement.style.backgroundColor = '#f9fafb';
+    }
+})();
+</script>

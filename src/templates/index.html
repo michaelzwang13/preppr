@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Preppr - AI-Powered Meal Prep Assistant</title>
+
+    <!-- Light theme initialization (must be first) -->
+    {% include "partials/_light_theme_init.html" %}
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Base CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/base.css') }}"
+    />
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <style>
+      .nav-links {
+        gap: var(--spacing-xl);
+      }
+
+      .nav-link {
+        padding: 0 !important;
+        border-radius: 0 !important;
+      }
+
+      .nav-link::after {
+        content: "";
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--primary-gradient);
+        transition: width 0.3s ease;
+      }
+
+      .nav-link:hover::after {
+        width: 100%;
+      }
+
+      .btn-login {
+        background: var(--primary-gradient);
+        color: var(--text-white);
+        padding: var(--spacing-sm) var(--spacing-lg);
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-md);
+      }
+
+      .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      /* Hero Section */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 100px var(--spacing-lg) var(--spacing-2xl);
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 200%;
+        background: var(--accent-gradient);
+        opacity: 0.05;
+        transform: rotate(15deg);
+        z-index: 0;
+      }
+
+      .hero-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-2xl);
+        align-items: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-content {
+        animation: fadeInUp 1s ease;
+      }
+
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        background: var(--bg-primary);
+        color: var(--primary-color);
+        padding: var(--spacing-xs) var(--spacing-md);
+        border-radius: var(--radius-xl);
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: var(--spacing-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-light);
+      }
+
+      .hero h1 {
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        font-weight: 700;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: var(--spacing-lg);
+        line-height: 1.2;
+      }
+
+      .hero-description {
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-xl);
+        line-height: 1.7;
+      }
+
+      .hero-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        flex-wrap: wrap;
+      }
+
+      .btn-primary {
+        background: var(--primary-gradient);
+        color: var(--text-white);
+        padding: var(--spacing-md) var(--spacing-xl);
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1.125rem;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-md);
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-xl);
+      }
+
+      .btn-secondary {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        padding: var(--spacing-md) var(--spacing-xl);
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 1.125rem;
+        transition: all 0.3s ease;
+        border: 2px solid var(--border-medium);
+      }
+
+      .btn-secondary:hover {
+        background: var(--bg-tertiary);
+        transform: translateY(-2px);
+      }
+
+      /* Hero Visual Section */
+      .hero-visual {
+        display: flex;
+        justify-content: center;
+        animation: fadeInRight 1s ease;
+        position: relative;
+      }
+
+      .feature-showcase {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-lg);
+        max-width: 500px;
+      }
+
+      .showcase-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-lg);
+        text-align: center;
+        transition: all 0.3s ease;
+        animation: float 6s ease-in-out infinite;
+      }
+
+      .showcase-card:nth-child(1) {
+        animation-delay: 0s;
+      }
+      .showcase-card:nth-child(2) {
+        animation-delay: 1.5s;
+      }
+      .showcase-card:nth-child(3) {
+        animation-delay: 3s;
+      }
+      .showcase-card:nth-child(4) {
+        animation-delay: 4.5s;
+      }
+
+      .showcase-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-xl);
+      }
+
+      .showcase-icon {
+        width: 50px;
+        height: 50px;
+        margin: 0 auto var(--spacing-sm);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+      }
+
+      .showcase-card:nth-child(1) .showcase-icon {
+        background: var(--primary-gradient);
+      }
+      .showcase-card:nth-child(2) .showcase-icon {
+        background: var(--warning-color);
+      }
+      .showcase-card:nth-child(3) .showcase-icon {
+        background: var(--info-color);
+      }
+      .showcase-card:nth-child(4) .showcase-icon {
+        background: var(--success-color);
+      }
+
+      .showcase-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-xs);
+      }
+
+      .showcase-desc {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+      }
+
+      /* Features Section */
+      .features {
+        padding: var(--spacing-2xl) var(--spacing-lg);
+        background: var(--bg-primary);
+      }
+
+      .features-container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .section-header {
+        text-align: center;
+        margin-bottom: var(--spacing-2xl);
+      }
+
+      .section-badge {
+        display: inline-block;
+        background: var(--primary-gradient);
+        color: var(--text-white);
+        padding: var(--spacing-xs) var(--spacing-md);
+        border-radius: var(--radius-xl);
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .section-title {
+        font-size: clamp(2rem, 4vw, 3rem);
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-md);
+      }
+
+      .section-description {
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: var(--spacing-xl);
+        margin-top: var(--spacing-2xl);
+      }
+
+      .feature-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-light);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .feature-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--primary-gradient);
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+      }
+
+      .feature-card:hover::before {
+        transform: scaleX(1);
+      }
+
+      .feature-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-xl);
+      }
+
+      .feature-icon {
+        width: 80px;
+        height: 80px;
+        background: var(--primary-gradient);
+        border-radius: var(--radius-xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto var(--spacing-lg);
+        color: var(--text-white);
+        font-size: 2rem;
+      }
+
+      .feature-title {
+        font-size: 1.5rem;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-md);
+        font-weight: 600;
+      }
+
+      .feature-description {
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      /* How It Works Section */
+      .how-it-works {
+        padding: var(--spacing-2xl) var(--spacing-lg);
+        background: var(--bg-secondary);
+      }
+
+      .steps-container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .steps-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: var(--spacing-xl);
+        margin-top: var(--spacing-2xl);
+      }
+
+      .step-card {
+        text-align: center;
+        position: relative;
+      }
+
+      .step-number {
+        width: 70px;
+        height: 70px;
+        background: var(--primary-gradient);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto var(--spacing-lg);
+        color: var(--text-white);
+        font-size: 1.75rem;
+        font-weight: 700;
+      }
+
+      .step-title {
+        font-size: 1.25rem;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-md);
+        font-weight: 600;
+      }
+
+      .step-description {
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      /* CTA Section */
+      .cta {
+        padding: var(--spacing-2xl) var(--spacing-lg);
+        background: var(--primary-gradient);
+        color: var(--text-white);
+        text-align: center;
+      }
+
+      .cta-container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .cta h2 {
+        color: var(--text-white);
+        margin-bottom: var(--spacing-lg);
+        font-size: clamp(2rem, 4vw, 2.5rem);
+      }
+
+      .cta p {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.25rem;
+        margin-bottom: var(--spacing-xl);
+      }
+
+      .btn-white {
+        background: var(--bg-primary);
+        color: var(--primary-color);
+        padding: var(--spacing-md) var(--spacing-xl);
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1.125rem;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-md);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+      }
+
+      .btn-white:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-xl);
+      }
+
+      /* Animations */
+      @keyframes fadeInRight {
+        from {
+          opacity: 0;
+          transform: translateX(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-15px);
+        }
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+        }
+
+        .mobile-menu-btn {
+          display: block;
+        }
+
+        .hero-container {
+          grid-template-columns: 1fr;
+          text-align: center;
+          gap: var(--spacing-xl);
+        }
+
+        .hero-visual {
+          order: -1;
+        }
+
+        .hero-actions {
+          justify-content: center;
+        }
+
+        .btn-primary,
+        .btn-secondary {
+          width: 100%;
+          text-align: center;
+          justify-content: center;
+        }
+
+        .feature-showcase {
+          grid-template-columns: 1fr;
+          max-width: 300px;
+        }
+
+        .features-grid,
+        .steps-grid {
+          grid-template-columns: 1fr;
+          gap: var(--spacing-lg);
+        }
+
+        .features-grid {
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+
+        h1 {
+          font-size: 2.5rem;
+        }
+
+        h2 {
+          font-size: 2rem;
+        }
+
+        .hero-description,
+        .section-description,
+        .cta p {
+          font-size: 1.125rem;
+        }
+      }
+
+      /* Accessibility */
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      /* Focus styles for accessibility */
+      .btn-primary:focus,
+      .btn-secondary:focus,
+      .btn-login:focus,
+      .btn-white:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <div class="nav-container">
+        <a href="{{ url_for('shopping.index') }}" class="logo">
+          <div class="logo-icon">
+            <i class="fas fa-utensils"></i>
+          </div>
+          Preppr
+        </a>
+
+        <nav>
+          <ul class="nav-links">
+            <li><a href="#features" class="nav-link">Features</a></li>
+            <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+            <li>
+              <a href="{{ url_for('auth.login') }}" class="btn-login"
+                >Get Started</a
+              >
+            </li>
+          </ul>
+
+          <button class="mobile-menu-btn" aria-label="Toggle mobile menu">
+            <i class="fas fa-bars"></i>
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-container">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <i class="fas fa-brain" aria-hidden="true"></i>
+            AI-Powered Meal Prep Assistant
+          </div>
+
+          <h1>Prep Smarter. Save Time. Eat Better.</h1>
+
+          <p class="hero-description">
+            Transform your meal prep experience with Preppr's intelligent meal
+            planning, pantry tracking, and smart shopping. Reduce food waste,
+            save money, and maintain consistency with your healthy eating goals.
+          </p>
+
+          <div class="hero-actions">
+            <a href="{{ url_for('auth.login') }}" class="btn-primary">
+              <i class="fas fa-rocket"></i>
+              Start Meal Prepping
+            </a>
+            <a href="#features" class="btn-secondary"> Learn More </a>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="feature-showcase">
+            <div class="showcase-card">
+              <div class="showcase-icon">
+                <i class="fas fa-brain"></i>
+              </div>
+              <div class="showcase-title">AI Meal Plans</div>
+              <div class="showcase-desc">Generated weekly plans</div>
+            </div>
+
+            <div class="showcase-card">
+              <div class="showcase-icon">
+                <i class="fas fa-clock"></i>
+              </div>
+              <div class="showcase-title">Batch Prep</div>
+              <div class="showcase-desc">Efficient cooking sessions</div>
+            </div>
+
+            <div class="showcase-card">
+              <div class="showcase-icon">
+                <i class="fas fa-archive"></i>
+              </div>
+              <div class="showcase-title">Pantry Tracking</div>
+              <div class="showcase-desc">Expiration predictions</div>
+            </div>
+
+            <div class="showcase-card">
+              <div class="showcase-icon">
+                <i class="fas fa-chart-line"></i>
+              </div>
+              <div class="showcase-title">Cost Tracking</div>
+              <div class="showcase-desc">Budget monitoring</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+      <div class="features-container">
+        <div class="section-header">
+          <span class="section-badge">Core Features</span>
+          <h2 class="section-title">Everything You Need for Smart Meal Prep</h2>
+          <p class="section-description">
+            Experience the future of meal preparation with our comprehensive
+            suite of AI-powered tools designed to streamline your kitchen
+            workflow.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-brain" aria-hidden="true"></i>
+            </div>
+            <h3 class="feature-title">AI-Powered Meal Planning</h3>
+            <p class="feature-description">
+              Generate personalized weekly meal plans using Google Gemini AI
+              based on your pantry items, time constraints, and dietary
+              preferences. Never run out of meal ideas again.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-clock" aria-hidden="true"></i>
+            </div>
+            <h3 class="feature-title">Batch Prep Scheduling</h3>
+            <p class="feature-description">
+              Optimize your cooking time with intelligent batch prep schedules.
+              Group meals into efficient cooking sessions that maximize your
+              productivity in the kitchen.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-archive" aria-hidden="true"></i>
+            </div>
+            <h3 class="feature-title">Smart Pantry Tracking</h3>
+            <p class="feature-description">
+              Keep track of your pantry inventory with AI-powered expiration
+              date predictions. Reduce food waste and always know what
+              ingredients you have available.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-shopping-cart" aria-hidden="true"></i>
+            </div>
+            <h3 class="feature-title">Intelligent Shopping Lists</h3>
+            <p class="feature-description">
+              Automatically generate shopping lists from your meal plans. Track
+              costs, set budgets, and make smarter purchasing decisions with
+              real-time budget monitoring.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+            </div>
+            <h3 class="feature-title">Meal Planning Calendar</h3>
+            <p class="feature-description">
+              Organize your meals with an intuitive calendar view. Schedule prep
+              sessions, track what you've cooked, and plan ahead for busy weeks.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-chart-line" aria-hidden="true"></i>
+            </div>
+            <h3 class="feature-title">Analytics</h3>
+            <p class="feature-description">
+              Monitor your spending with detailed cost tracking per meal and
+              overall savings analysis. Make data-driven decisions about your
+              food budget.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="how-it-works">
+      <div class="steps-container">
+        <div class="section-header">
+          <span class="section-badge">Getting Started</span>
+          <h2 class="section-title">How Preppr Works</h2>
+          <p class="section-description">
+            Get started with intelligent meal prepping in three simple steps and
+            transform your kitchen routine forever.
+          </p>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number">1</div>
+            <h3 class="step-title">Set Your Preferences</h3>
+            <p class="step-description">
+              Tell us about your dietary preferences, time constraints, and
+              budget. Input your current pantry items and let our AI understand
+              your needs.
+            </p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">2</div>
+            <h3 class="step-title">Get AI-Generated Plans</h3>
+            <p class="step-description">
+              Receive personalized weekly meal plans with batch prep schedules,
+              shopping lists, and cost breakdowns tailored to your lifestyle and
+              goals.
+            </p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">3</div>
+            <h3 class="step-title">Execute & Track Progress</h3>
+            <p class="step-description">
+              Follow your optimized prep schedule, track your pantry inventory,
+              and monitor your budget as you build consistent, healthy eating
+              habits.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Call to Action Section -->
+    <section class="cta">
+      <div class="cta-container">
+        <h2>Ready to Revolutionize Your Meal Prep?</h2>
+        <p>
+          Join the future of intelligent meal preparation. Save hours every
+          week, reduce food waste, and maintain your healthy eating goals with
+          AI-powered assistance.
+        </p>
+        <a href="{{ url_for('auth.login') }}" class="btn-white">
+          <i class="fas fa-utensils"></i>
+          Start Your Meal Prep Journey
+        </a>
+      </div>
+    </section>
+
+    {% include "partials/_footer.html" %}
+
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings - Preppr</title>
+
+    <!-- Theme initialization (must be first) -->
+    {% include 'partials/_theme_init.html' %}
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Base CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/base.css') }}"
+    />
+
+    <style>
+      .settings-container {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .settings-header {
+        text-align: center;
+        margin-bottom: var(--spacing-2xl);
+      }
+
+      .settings-icon {
+        width: 80px;
+        height: 80px;
+        background: var(--primary-gradient);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto var(--spacing-lg);
+        color: var(--text-white);
+        font-size: 2rem;
+      }
+
+      .settings-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-sm);
+      }
+
+      .settings-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.125rem;
+      }
+
+      /* Settings Cards */
+      .settings-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-xl);
+        border: 1px solid var(--border-light);
+        margin-bottom: var(--spacing-xl);
+        overflow: hidden;
+        animation: fadeInUp 0.8s ease;
+      }
+
+      .card-header {
+        padding: var(--spacing-xl);
+        border-bottom: 1px solid var(--border-light);
+        background: linear-gradient(
+          135deg,
+          var(--bg-secondary) 0%,
+          var(--bg-tertiary) 100%
+        );
+      }
+
+      .card-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-xs);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+      }
+
+      .card-description {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+      }
+
+      .card-body {
+        padding: var(--spacing-xl);
+      }
+
+      /* Form Styles */
+      .form-group {
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-lg);
+      }
+
+      .form-label {
+        display: block;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-sm);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .form-input-container {
+        position: relative;
+      }
+
+      .form-input {
+        width: 100%;
+        padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) 3rem;
+        border: 2px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        font-size: 1rem;
+        font-family: var(--font-family);
+        transition: all 0.3s ease;
+        background: var(--bg-primary);
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+      }
+
+      .form-input-icon {
+        position: absolute;
+        left: var(--spacing-md);
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 1.125rem;
+        transition: color 0.3s ease;
+      }
+
+      .form-input:focus + .form-input-icon {
+        color: var(--primary-color);
+      }
+
+      /* Success/Error Messages */
+      .message {
+        padding: var(--spacing-md);
+        border-radius: var(--radius-lg);
+        margin-bottom: var(--spacing-lg);
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+      }
+
+      .message.success {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        border: 1px solid #6ee7b7;
+        color: var(--success-color);
+      }
+
+      .message.error {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        border: 1px solid #fca5a5;
+        color: var(--error-color);
+      }
+
+      /* Buttons */
+      .btn {
+        padding: var(--spacing-md) var(--spacing-xl);
+        border: none;
+        border-radius: var(--radius-lg);
+        font-family: var(--font-family);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-sm);
+        font-size: 1rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn-primary {
+        background: var(--primary-gradient);
+        color: var(--text-white);
+        box-shadow: var(--shadow-md);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .btn-secondary {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        border: 2px solid var(--border-medium);
+      }
+
+      .btn-secondary:hover {
+        background: var(--bg-secondary);
+        border-color: var(--primary-color);
+      }
+
+      .btn-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        justify-content: flex-end;
+        margin-top: var(--spacing-xl);
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+        }
+
+        .main-content {
+          padding: 120px var(--spacing-md) var(--spacing-lg);
+        }
+
+        .settings-card {
+          margin-bottom: var(--spacing-lg);
+        }
+
+        .card-header,
+        .card-body {
+          padding: var(--spacing-lg);
+        }
+
+        .settings-title {
+          font-size: 2rem;
+        }
+
+        .form-row {
+          grid-template-columns: 1fr;
+          gap: var(--spacing-md);
+        }
+
+        .btn-actions {
+          flex-direction: column;
+        }
+
+        .status-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: var(--spacing-md);
+        }
+      }
+
+      /* Focus styles for accessibility */
+      .btn:focus,
+      .nav-link:focus,
+      .form-input:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+
+      /* Toggle Switch Styles */
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+      }
+
+      .toggle-input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .toggle-label {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--bg-tertiary);
+        border: 2px solid var(--border-light);
+        transition: .4s;
+        border-radius: 34px;
+      }
+
+      .toggle-label:before {
+        position: absolute;
+        content: "";
+        height: 24px;
+        width: 24px;
+        left: 3px;
+        bottom: 3px;
+        background-color: var(--text-white);
+        transition: .4s;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .toggle-input:checked + .toggle-label {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+      }
+
+      .toggle-input:focus + .toggle-label {
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+      }
+
+      .toggle-input:checked + .toggle-label:before {
+        transform: translateX(26px);
+      }
+
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: transparent;
+        transition: .4s;
+        border-radius: 34px;
+      }
+
+      /* Subscription Status Styles */
+      .subscription-status {
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+      }
+
+      .status-header {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+      }
+
+      .status-badge {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-lg);
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .status-badge.premium {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: var(--text-white);
+      }
+
+      .status-badge.free {
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-light);
+      }
+
+      .status-info h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-xs);
+      }
+
+      .status-info p {
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-sm);
+      }
+
+      .renewal-date {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        font-size: 0.875rem;
+        color: var(--text-muted);
+      }
+
+      /* Upgrade CTA */
+      .upgrade-cta {
+        margin-top: var(--spacing-xl);
+        padding-top: var(--spacing-xl);
+        border-top: 1px solid var(--border-light);
+        text-align: center;
+      }
+
+      .upgrade-cta p {
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .btn-premium {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: var(--text-white);
+        border: none;
+        padding: var(--spacing-md) var(--spacing-xl);
+        border-radius: var(--radius-lg);
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+      }
+
+      .btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+      }
+
+      .btn-premium i {
+        font-size: 1.125rem;
+      }
+    </style>
+  </head>
+  <body class="font-sans leading-relaxed" style="color: var(--text-primary); background: var(--bg-secondary);">
+    <div
+      class="page-wrapper"
+      style="min-height: 100vh; display: flex; flex-direction: column"
+    >
+      <!-- Header -->
+      <header class="header">
+        <div class="nav-container">
+          <a href="{{ url_for('shopping.home') }}" class="logo">
+            <img
+              src="{{ url_for('static', filename='images/preppr-logo.png') }}"
+              alt="Preppr Logo"
+              style="width: 40px; height: 40px; border-radius: var(--radius-lg)"
+            />
+            Preppr
+          </a>
+
+          <nav>
+            <ul class="nav-links">
+              <li>
+                <a href="{{ url_for('shopping.home') }}" class="nav-link"
+                  >Home</a
+                >
+              </li>
+              <li>
+                <a href="{{ url_for('auth.logout') }}" class="nav-link"
+                  >Logout</a
+                >
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main-content" style="flex: 1">
+        <div class="settings-container">
+          <div class="settings-header">
+            <div class="settings-icon">
+              <i class="fas fa-cog" aria-hidden="true"></i>
+            </div>
+            <h1 class="settings-title">Account Settings</h1>
+          </div>
+
+          {% if success %}
+          <div class="message success">
+            <i class="fas fa-check-circle" aria-hidden="true"></i>
+            {{ success }}
+          </div>
+          {% endif %} {% if error %}
+          <div class="message error">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            {{ error }}
+          </div>
+          {% endif %}
+
+          <!-- Personal Information -->
+          <div class="settings-card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <i class="fas fa-user" aria-hidden="true"></i>
+                Personal Information
+              </h2>
+              <p class="card-description">
+                Update your name and contact information
+              </p>
+            </div>
+            <div class="card-body">
+              <form
+                action="{{ url_for('auth.settings') }}"
+                method="POST"
+                id="personalInfoForm"
+              >
+                <input type="hidden" name="form_type" value="personal_info" />
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="first_name" class="form-label"
+                      >First Name</label
+                    >
+                    <div class="form-input-container">
+                      <input
+                        type="text"
+                        id="first_name"
+                        name="first_name"
+                        class="form-input"
+                        value="{{ user.first_name or '' }}"
+                        placeholder="Enter your first name"
+                        required
+                        autocomplete="given-name"
+                      />
+                      <i
+                        class="fas fa-user form-input-icon"
+                        aria-hidden="true"
+                      ></i>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="last_name" class="form-label">Last Name</label>
+                    <div class="form-input-container">
+                      <input
+                        type="text"
+                        id="last_name"
+                        name="last_name"
+                        class="form-input"
+                        value="{{ user.last_name or '' }}"
+                        placeholder="Enter your last name"
+                        required
+                        autocomplete="family-name"
+                      />
+                      <i
+                        class="fas fa-user form-input-icon"
+                        aria-hidden="true"
+                      ></i>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="email" class="form-label">Email Address</label>
+                  <div class="form-input-container">
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      class="form-input"
+                      value="{{ user.email }}"
+                      placeholder="Enter your email address"
+                      required
+                      autocomplete="email"
+                    />
+                    <i
+                      class="fas fa-envelope form-input-icon"
+                      aria-hidden="true"
+                    ></i>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="timezone" class="form-label">Timezone</label>
+                  <div class="form-input-container">
+                    <select
+                      id="timezone"
+                      name="timezone"
+                      class="form-input"
+                      required
+                    >
+                      <option value="">Select your timezone...</option>
+                      <!-- North America -->
+                      <optgroup label="North America">
+                        <option value="America/New_York" {{ 'selected' if user.timezone == 'America/New_York' else '' }}>Eastern Time (New York)</option>
+                        <option value="America/Chicago" {{ 'selected' if user.timezone == 'America/Chicago' else '' }}>Central Time (Chicago)</option>
+                        <option value="America/Denver" {{ 'selected' if user.timezone == 'America/Denver' else '' }}>Mountain Time (Denver)</option>
+                        <option value="America/Los_Angeles" {{ 'selected' if user.timezone == 'America/Los_Angeles' else '' }}>Pacific Time (Los Angeles)</option>
+                        <option value="America/Anchorage" {{ 'selected' if user.timezone == 'America/Anchorage' else '' }}>Alaska Time (Anchorage)</option>
+                        <option value="Pacific/Honolulu" {{ 'selected' if user.timezone == 'Pacific/Honolulu' else '' }}>Hawaii Time (Honolulu)</option>
+                        <option value="America/Toronto" {{ 'selected' if user.timezone == 'America/Toronto' else '' }}>Eastern Time (Toronto)</option>
+                        <option value="America/Vancouver" {{ 'selected' if user.timezone == 'America/Vancouver' else '' }}>Pacific Time (Vancouver)</option>
+                      </optgroup>
+                      <!-- Europe -->
+                      <optgroup label="Europe">
+                        <option value="Europe/London" {{ 'selected' if user.timezone == 'Europe/London' else '' }}>Greenwich Mean Time (London)</option>
+                        <option value="Europe/Paris" {{ 'selected' if user.timezone == 'Europe/Paris' else '' }}>Central European Time (Paris)</option>
+                        <option value="Europe/Berlin" {{ 'selected' if user.timezone == 'Europe/Berlin' else '' }}>Central European Time (Berlin)</option>
+                        <option value="Europe/Rome" {{ 'selected' if user.timezone == 'Europe/Rome' else '' }}>Central European Time (Rome)</option>
+                        <option value="Europe/Madrid" {{ 'selected' if user.timezone == 'Europe/Madrid' else '' }}>Central European Time (Madrid)</option>
+                        <option value="Europe/Amsterdam" {{ 'selected' if user.timezone == 'Europe/Amsterdam' else '' }}>Central European Time (Amsterdam)</option>
+                        <option value="Europe/Stockholm" {{ 'selected' if user.timezone == 'Europe/Stockholm' else '' }}>Central European Time (Stockholm)</option>
+                        <option value="Europe/Moscow" {{ 'selected' if user.timezone == 'Europe/Moscow' else '' }}>Moscow Time (Moscow)</option>
+                      </optgroup>
+                      <!-- Asia -->
+                      <optgroup label="Asia">
+                        <option value="Asia/Tokyo" {{ 'selected' if user.timezone == 'Asia/Tokyo' else '' }}>Japan Standard Time (Tokyo)</option>
+                        <option value="Asia/Shanghai" {{ 'selected' if user.timezone == 'Asia/Shanghai' else '' }}>China Standard Time (Shanghai)</option>
+                        <option value="Asia/Seoul" {{ 'selected' if user.timezone == 'Asia/Seoul' else '' }}>Korea Standard Time (Seoul)</option>
+                        <option value="Asia/Hong_Kong" {{ 'selected' if user.timezone == 'Asia/Hong_Kong' else '' }}>Hong Kong Time (Hong Kong)</option>
+                        <option value="Asia/Singapore" {{ 'selected' if user.timezone == 'Asia/Singapore' else '' }}>Singapore Standard Time (Singapore)</option>
+                        <option value="Asia/Dubai" {{ 'selected' if user.timezone == 'Asia/Dubai' else '' }}>Gulf Standard Time (Dubai)</option>
+                        <option value="Asia/Kolkata" {{ 'selected' if user.timezone == 'Asia/Kolkata' else '' }}>India Standard Time (Mumbai)</option>
+                        <option value="Asia/Bangkok" {{ 'selected' if user.timezone == 'Asia/Bangkok' else '' }}>Indochina Time (Bangkok)</option>
+                      </optgroup>
+                      <!-- Australia & Oceania -->
+                      <optgroup label="Australia & Oceania">
+                        <option value="Australia/Sydney" {{ 'selected' if user.timezone == 'Australia/Sydney' else '' }}>Australian Eastern Time (Sydney)</option>
+                        <option value="Australia/Melbourne" {{ 'selected' if user.timezone == 'Australia/Melbourne' else '' }}>Australian Eastern Time (Melbourne)</option>
+                        <option value="Australia/Perth" {{ 'selected' if user.timezone == 'Australia/Perth' else '' }}>Australian Western Time (Perth)</option>
+                        <option value="Pacific/Auckland" {{ 'selected' if user.timezone == 'Pacific/Auckland' else '' }}>New Zealand Standard Time (Auckland)</option>
+                      </optgroup>
+                      <!-- Other -->
+                      <optgroup label="Other">
+                        <option value="UTC" {{ 'selected' if user.timezone == 'UTC' or not user.timezone else '' }}>Coordinated Universal Time (UTC)</option>
+                      </optgroup>
+                    </select>
+                    <i
+                      class="fas fa-globe-americas form-input-icon"
+                      aria-hidden="true"
+                    ></i>
+                  </div>
+                </div>
+
+                <div class="btn-actions">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save" aria-hidden="true"></i>
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Subscription Status -->
+          <div class="settings-card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <i class="fas fa-crown" aria-hidden="true"></i>
+                Subscription
+              </h2>
+              <p class="card-description">
+                View your current plan and manage your subscription
+              </p>
+            </div>
+            <div class="card-body">
+              {% if subscription_status %}
+                {% if subscription_status.tier == 'premium' %}
+                  <!-- Premium User -->
+                  <div class="subscription-status premium-status">
+                    <div class="status-header">
+                      <div class="status-badge premium">
+                        <i class="fas fa-crown"></i>
+                        Premium
+                      </div>
+                      <div class="status-info">
+                        <h3>Preppr Premium</h3>
+                        <p>You have unlimited access to all Preppr features</p>
+                        {% if subscription_status.end_date %}
+                          <p class="renewal-date">
+                            <i class="fas fa-calendar"></i>
+                            {% if subscription_status.status == 'active' %}
+                              Renews on {{ subscription_status.end_date.strftime('%B %d, %Y') }}
+                            {% else %}
+                              Expires on {{ subscription_status.end_date.strftime('%B %d, %Y') }}
+                            {% endif %}
+                          </p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                {% else %}
+                  <!-- Free User -->
+                  <div class="subscription-status free-status">
+                    <div class="status-header">
+                      <div class="status-badge free">
+                        <i class="fas fa-user"></i>
+                        Free
+                      </div>
+                      <div class="status-info">
+                        <h3>Preppr Free</h3>
+                        <p>You're using the free version of Preppr</p>
+                      </div>
+                    </div>
+                    
+                    <div class="upgrade-cta">
+                      <p>Upgrade to Premium for unlimited access to all features</p>
+                      <a href="{{ url_for('auth.upgrade') }}" class="btn btn-premium">
+                        <i class="fas fa-crown"></i>
+                        Upgrade to Premium
+                      </a>
+                    </div>
+                  </div>
+                {% endif %}
+              {% else %}
+                <!-- Fallback if no subscription info -->
+                <div class="subscription-status free-status">
+                  <div class="status-header">
+                    <div class="status-badge free">
+                      <i class="fas fa-user"></i>
+                      Free
+                    </div>
+                    <div class="status-info">
+                      <h3>Preppr Free</h3>
+                      <p>You're using the free version of Preppr</p>
+                    </div>
+                  </div>
+                  
+                  <div class="upgrade-cta">
+                    <p>Upgrade to Premium for unlimited access to all features</p>
+                    <a href="{{ url_for('auth.upgrade') }}" class="btn btn-premium">
+                      <i class="fas fa-crown"></i>
+                      Upgrade to Premium
+                    </a>
+                  </div>
+                </div>
+              {% endif %}
+              
+              <!-- Feature Comparison Dropdown -->
+              <div class="subscription-comparison" style="margin-top: var(--spacing-xl); padding-top: var(--spacing-xl); border-top: 1px solid var(--border-light);">
+                <div class="comparison-header" style="display: flex; align-items: center; justify-content: space-between; padding: var(--spacing-md); background: var(--bg-secondary); border-radius: var(--radius-lg); cursor: pointer;" onclick="toggleFeatureComparison()">
+                  <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                    <i class="fas fa-list" style="color: var(--primary-color);"></i>
+                    <span style="font-weight: 600; color: var(--text-primary);">Compare Plans & Features</span>
+                  </div>
+                  <i id="featureToggleIcon" class="fas fa-chevron-down" style="color: var(--text-secondary); transition: transform 0.3s ease;"></i>
+                </div>
+                
+                <div id="featureComparisonContent" class="comparison-content" style="display: none; margin-top: var(--spacing-md); border: 1px solid var(--border-light); border-radius: var(--radius-lg); overflow: hidden;">
+                  <div class="comparison-table" style="display: grid; grid-template-columns: 2fr 1fr 1fr; background: var(--bg-primary);">
+                    <!-- Header -->
+                    <div class="comparison-header-cell" style="padding: var(--spacing-lg); background: var(--bg-tertiary); font-weight: 600; color: var(--text-primary); border-right: 1px solid var(--border-light);">Feature</div>
+                    <div class="comparison-header-cell" style="padding: var(--spacing-lg); background: var(--bg-tertiary); font-weight: 600; color: var(--text-primary); text-align: center; border-right: 1px solid var(--border-light);">
+                      <i class="fas fa-user" style="margin-right: var(--spacing-xs);"></i>Free
+                    </div>
+                    <div class="comparison-header-cell" style="padding: var(--spacing-lg); background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); font-weight: 600; color: white; text-align: center;">
+                      <i class="fas fa-crown" style="margin-right: var(--spacing-xs);"></i>Premium
+                    </div>
+                    
+                    <!-- Meal Plans -->
+                    <div class="comparison-cell" style="padding: var(--spacing-md) var(--spacing-lg); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);">
+                      <div style="font-weight: 500; color: var(--text-primary);">Active Meal Plans</div>
+                      <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: var(--spacing-xs);">Number of meal plans you can have running at once</div>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--text-primary);">3 plans</span>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-bottom: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--success-color);">Unlimited</span>
+                    </div>
+                    
+                    <!-- Advance Planning -->
+                    <div class="comparison-cell" style="padding: var(--spacing-md) var(--spacing-lg); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);">
+                      <div style="font-weight: 500; color: var(--text-primary);">Advance Planning</div>
+                      <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: var(--spacing-xs);">How far ahead you can plan meals</div>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--text-primary);">7 days</span>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-bottom: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--success-color);">Unlimited</span>
+                    </div>
+                    
+                    <!-- Pantry Items -->
+                    <div class="comparison-cell" style="padding: var(--spacing-md) var(--spacing-lg); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);">
+                      <div style="font-weight: 500; color: var(--text-primary);">Pantry Items</div>
+                      <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: var(--spacing-xs);">Maximum ingredients you can store in pantry</div>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--text-primary);">100 items</span>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-bottom: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--success-color);">Unlimited</span>
+                    </div>
+                    
+                    <!-- Saved Recipes -->
+                    <div class="comparison-cell" style="padding: var(--spacing-md) var(--spacing-lg); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);">
+                      <div style="font-weight: 500; color: var(--text-primary);">Saved Recipes</div>
+                      <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: var(--spacing-xs);">Personal recipe collection storage</div>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--text-primary);">10 recipes</span>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-bottom: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--success-color);">Unlimited</span>
+                    </div>
+                    
+                    <!-- Shopping Lists -->
+                    <div class="comparison-cell" style="padding: var(--spacing-md) var(--spacing-lg); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);">
+                      <div style="font-weight: 500; color: var(--text-primary);">Shopping List Generation</div>
+                      <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: var(--spacing-xs);">AI-generated shopping lists per day</div>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--text-primary);">1 per day</span>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-bottom: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--success-color);">Unlimited</span>
+                    </div>
+                    
+                    <!-- UPC Scanning -->
+                    <div class="comparison-cell" style="padding: var(--spacing-md) var(--spacing-lg); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);">
+                      <div style="font-weight: 500; color: var(--text-primary);">UPC Scanning</div>
+                      <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: var(--spacing-xs);">Product barcode scans per shopping trip</div>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--text-primary);">20 per trip</span>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-bottom: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--success-color);">Unlimited</span>
+                    </div>
+                    
+                    <!-- Nutrition Tracking -->
+                    <div class="comparison-cell" style="padding: var(--spacing-md) var(--spacing-lg); border-right: 1px solid var(--border-light);">
+                      <div style="font-weight: 500; color: var(--text-primary);">Nutrition Tracking</div>
+                      <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: var(--spacing-xs);">Detailed macro and nutrient analysis</div>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); border-right: 1px solid var(--border-light); text-align: center;">
+                      <span style="font-weight: 600; color: var(--warning-color);">Basic</span>
+                      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--spacing-xs);">Calories + Protein only</div>
+                    </div>
+                    <div class="comparison-cell" style="padding: var(--spacing-md); text-align: center;">
+                      <span style="font-weight: 600; color: var(--success-color);">Advanced</span>
+                      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--spacing-xs);">All macros + history</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Account Settings -->
+          <div class="settings-card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <i class="fas fa-user-cog" aria-hidden="true"></i>
+                Account Settings
+              </h2>
+              <p class="card-description">Change your username and password</p>
+            </div>
+            <div class="card-body">
+              <form
+                action="{{ url_for('auth.settings') }}"
+                method="POST"
+                id="accountForm"
+              >
+                <input
+                  type="hidden"
+                  name="form_type"
+                  value="account_settings"
+                />
+
+                <div class="form-group">
+                  <label for="username" class="form-label">Username</label>
+                  <div class="form-input-container">
+                    <input
+                      type="text"
+                      id="username"
+                      name="username"
+                      class="form-input"
+                      value="{{ user.user_ID }}"
+                      placeholder="Choose a username"
+                      required
+                      autocomplete="username"
+                      minlength="3"
+                    />
+                    <i
+                      class="fas fa-user form-input-icon"
+                      aria-hidden="true"
+                    ></i>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="current_password" class="form-label"
+                      >Current Password</label
+                    >
+                    <div class="form-input-container">
+                      <input
+                        type="password"
+                        id="current_password"
+                        name="current_password"
+                        class="form-input"
+                        placeholder="Enter current password"
+                        autocomplete="current-password"
+                      />
+                      <i
+                        class="fas fa-lock form-input-icon"
+                        aria-hidden="true"
+                      ></i>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="new_password" class="form-label"
+                      >New Password</label
+                    >
+                    <div class="form-input-container">
+                      <input
+                        type="password"
+                        id="new_password"
+                        name="new_password"
+                        class="form-input"
+                        placeholder="Enter new password"
+                        autocomplete="new-password"
+                        minlength="6"
+                      />
+                      <i
+                        class="fas fa-lock form-input-icon"
+                        aria-hidden="true"
+                      ></i>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="btn-actions">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save" aria-hidden="true"></i>
+                    Update Account
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- User Preferences -->
+          <div class="settings-card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <i class="fas fa-sliders-h" aria-hidden="true"></i>
+                Preferences
+              </h2>
+              <p class="card-description">
+                Customize your Preppr experience and features
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--spacing-md) 0;">
+                  <div>
+                    <label class="form-label" style="margin-bottom: var(--spacing-xs);">
+                      <i class="fas fa-chart-pie" style="margin-right: var(--spacing-sm); color: var(--primary-color);"></i>
+                      Nutrition Tracking
+                    </label>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">
+                      Enable advanced nutrition metrics, meal nutrition info, and daily nutrition summaries
+                    </p>
+                  </div>
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="nutritionTrackingToggle" class="toggle-input" checked>
+                    <label for="nutritionTrackingToggle" class="toggle-label">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--spacing-md) 0;">
+                  <div>
+                    <label class="form-label" style="margin-bottom: var(--spacing-xs);">
+                      <i class="fas fa-bell" style="margin-right: var(--spacing-sm); color: var(--primary-color);"></i>
+                      Email Notifications
+                    </label>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">
+                      Receive email updates about meal plans and shopping lists
+                    </p>
+                  </div>
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="emailNotificationsToggle" class="toggle-input" checked>
+                    <label for="emailNotificationsToggle" class="toggle-label">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="measurementUnit" class="form-label">Measurement Unit</label>
+                <div class="form-input-container">
+                  <select id="measurementUnit" class="form-input">
+                    <option value="imperial">Imperial (lbs, °F)</option>
+                    <option value="metric">Metric (kg, °C)</option>
+                  </select>
+                  <i class="fas fa-ruler form-input-icon" aria-hidden="true"></i>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--spacing-md) 0;">
+                  <div>
+                    <label class="form-label" style="margin-bottom: var(--spacing-xs);">
+                      <i class="fas fa-moon" style="margin-right: var(--spacing-sm); color: var(--primary-color);"></i>
+                      Dark Mode
+                    </label>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">
+                      Choose your preferred display theme for the interface
+                    </p>
+                  </div>
+                  <div class="form-input-container" style="min-width: 150px; max-width: 200px;">
+                    <select id="themePreference" class="form-input" style="padding-left: var(--spacing-md);">
+                      <option value="system">System Default</option>
+                      <option value="light">Light Mode</option>
+                      <option value="dark">Dark Mode</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="btn-actions">
+                <button type="button" class="btn btn-primary" id="savePreferencesBtn">
+                  <i class="fas fa-save" aria-hidden="true"></i>
+                  Save Preferences
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {% include "partials/_footer.html" %}
+    </div>
+  </body>
+
+  <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+</html>

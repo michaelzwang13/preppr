@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - Preppr</title>
+
+    <!-- Light theme initialization (must be first) -->
+    {% include "partials/_light_theme_init.html" %}
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Base CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/base.css') }}"
+    />
+
+    <style>
+      body {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        min-height: 100vh;
+      }
+
+      .nav-link {
+        padding: 0 !important;
+        border-radius: 0 !important;
+      }
+
+      .nav-link:hover {
+        background: transparent !important;
+      }
+
+      .nav-link::after {
+        content: "";
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--primary-gradient);
+        transition: width 0.3s ease;
+      }
+
+      .nav-link:hover::after {
+        width: 100%;
+      }
+
+      /* Main Content */
+      .main-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .main-content::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 200%;
+        background: var(--accent-gradient);
+        opacity: 0.05;
+        transform: rotate(15deg);
+        z-index: 0;
+      }
+
+      .register-container {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+      }
+
+      .register-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-xl);
+        padding: var(--spacing-2xl);
+        border: 1px solid var(--border-light);
+        position: relative;
+        overflow: hidden;
+        animation: fadeInUp 0.8s ease;
+      }
+
+      .register-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--primary-gradient);
+      }
+
+      .register-header {
+        text-align: center;
+        margin-bottom: var(--spacing-xl);
+      }
+
+      .register-icon {
+        width: 80px;
+        height: 80px;
+        background: var(--primary-gradient);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto var(--spacing-lg);
+        color: var(--text-white);
+        font-size: 2rem;
+      }
+
+      .register-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-sm);
+      }
+
+      .register-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.125rem;
+      }
+
+      /* Form Styles */
+      .form-group {
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .form-label {
+        display: block;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-sm);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .form-input-container {
+        position: relative;
+      }
+
+      .form-input {
+        width: 100%;
+        padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) 3rem;
+        border: 2px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        font-size: 1rem;
+        font-family: var(--font-family);
+        transition: all 0.3s ease;
+        background: var(--bg-primary);
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .form-input-icon {
+        position: absolute;
+        left: var(--spacing-md);
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 1.125rem;
+        transition: color 0.3s ease;
+      }
+
+      .form-input:focus + .form-input-icon {
+        color: var(--primary-color);
+      }
+
+      /* Password Strength Indicator */
+      .password-strength {
+        margin-top: var(--spacing-sm);
+        height: 4px;
+        background: var(--border-light);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+      }
+
+      .password-strength-fill {
+        height: 100%;
+        width: 0%;
+        transition: all 0.3s ease;
+        border-radius: var(--radius-sm);
+      }
+
+      .password-strength.weak .password-strength-fill {
+        width: 33%;
+        background: var(--error-color);
+      }
+
+      .password-strength.medium .password-strength-fill {
+        width: 66%;
+        background: var(--warning-color);
+      }
+
+      .password-strength.strong .password-strength-fill {
+        width: 100%;
+        background: var(--success-color);
+      }
+
+      .password-strength-text {
+        font-size: 0.75rem;
+        margin-top: var(--spacing-xs);
+        font-weight: 500;
+      }
+
+      .password-strength.weak .password-strength-text {
+        color: var(--error-color);
+      }
+
+      .password-strength.medium .password-strength-text {
+        color: var(--warning-color);
+      }
+
+      .password-strength.strong .password-strength-text {
+        color: var(--success-color);
+      }
+
+      /* Password Match Indicator */
+      .password-match {
+        margin-top: var(--spacing-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+      }
+
+      .password-match.match {
+        color: var(--success-color);
+      }
+
+      .password-match.no-match {
+        color: var(--error-color);
+      }
+
+      /* Input feedback styles */
+      .input-feedback {
+        margin-top: var(--spacing-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        opacity: 0;
+        transition: all 0.3s ease;
+      }
+
+      .input-feedback.valid {
+        color: var(--success-color);
+        opacity: 1;
+      }
+
+      .input-feedback.invalid {
+        color: var(--error-color);
+        opacity: 1;
+      }
+
+      .input-feedback:empty {
+        opacity: 0;
+      }
+
+      /* Error Message */
+      .error-message {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        border: 1px solid #fca5a5;
+        color: var(--error-color);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-lg);
+        margin-bottom: var(--spacing-lg);
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        animation: shake 0.5s ease;
+      }
+
+      /* Submit Button */
+      .btn-submit {
+        width: 100%;
+        background: var(--primary-gradient);
+        color: var(--text-white);
+        border: none;
+        padding: var(--spacing-md) var(--spacing-xl);
+        border-radius: var(--radius-lg);
+        font-size: 1.125rem;
+        font-weight: 600;
+        font-family: var(--font-family);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-md);
+        margin-bottom: var(--spacing-lg);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn-submit:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .btn-submit:active {
+        transform: translateY(0);
+      }
+
+      .btn-submit:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .btn-submit::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s ease;
+      }
+
+      .btn-submit:hover::before {
+        left: 100%;
+      }
+
+      /* Login Link */
+      .login-link {
+        text-align: center;
+        padding-top: var(--spacing-lg);
+        border-top: 1px solid var(--border-light);
+      }
+
+      .login-link p {
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-sm);
+      }
+
+      .login-link a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .login-link a:hover {
+        color: var(--secondary-color);
+      }
+
+      .login-link a::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--primary-gradient);
+        transition: width 0.3s ease;
+      }
+
+      .login-link a:hover::after {
+        width: 100%;
+      }
+
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-5px);
+        }
+        75% {
+          transform: translateX(5px);
+        }
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+        }
+
+        .main-content {
+          padding: 100px var(--spacing-md) var(--spacing-lg);
+        }
+
+        .register-card {
+          padding: var(--spacing-xl);
+        }
+
+        .register-title {
+          font-size: 1.75rem;
+        }
+
+        .register-subtitle {
+          font-size: 1rem;
+        }
+      }
+
+      /* Accessibility */
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      /* Focus styles for accessibility */
+      .btn-submit:focus,
+      .nav-link:focus,
+      .form-input:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <div class="nav-container">
+        <a href="{{ url_for('shopping.index') }}" class="logo">
+          <img
+            src="{{ url_for('static', filename='images/preppr-logo.png') }}"
+            alt="Preppr Logo"
+            style="width: 40px; height: 40px; border-radius: var(--radius-lg)"
+          />
+          Preppr
+        </a>
+
+        <nav>
+          <ul class="nav-links">
+            <li>
+              <a href="{{ url_for('shopping.index') }}" class="nav-link"
+                >Home</a
+              >
+            </li>
+            <li>
+              <a href="{{ url_for('auth.login') }}" class="nav-link">Login</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="register-container">
+        <div class="register-card">
+          <div class="register-header">
+            <div class="register-icon">
+              <i class="fas fa-user-plus" aria-hidden="true"></i>
+            </div>
+            <h1 class="register-title">Join Preppr</h1>
+            <p class="register-subtitle">
+              Create your account and start shopping smarter
+            </p>
+          </div>
+
+          {% if error %}
+          <div class="error-message">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            {{ error }}
+          </div>
+          {% endif %}
+
+          <form
+            action="{{ url_for('auth.register') }}"
+            method="POST"
+            id="registerForm"
+          >
+            <div class="form-group">
+              <label for="email_address" class="form-label"
+                >Email Address</label
+              >
+              <div class="form-input-container">
+                <input
+                  type="email"
+                  id="email_address"
+                  name="email_address"
+                  class="form-input"
+                  placeholder="Enter your email address"
+                  required
+                  autocomplete="email"
+                />
+                <i
+                  class="fas fa-envelope form-input-icon"
+                  aria-hidden="true"
+                ></i>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="user_ID" class="form-label">Username</label>
+              <div class="form-input-container">
+                <input
+                  type="text"
+                  id="user_ID"
+                  name="user_ID"
+                  class="form-input"
+                  placeholder="Choose a username"
+                  required
+                  autocomplete="username"
+                  minlength="3"
+                />
+                <i class="fas fa-user form-input-icon" aria-hidden="true"></i>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="first_name" class="form-label">First Name</label>
+              <div class="form-input-container">
+                <input
+                  type="text"
+                  id="first_name"
+                  name="first_name"
+                  class="form-input"
+                  placeholder="Enter your first name (optional)"
+                  autocomplete="given-name"
+                />
+                <i class="fas fa-user form-input-icon" aria-hidden="true"></i>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="last_name" class="form-label">Last Name</label>
+              <div class="form-input-container">
+                <input
+                  type="text"
+                  id="last_name"
+                  name="last_name"
+                  class="form-input"
+                  placeholder="Enter your last name (optional)"
+                  autocomplete="family-name"
+                />
+                <i class="fas fa-user form-input-icon" aria-hidden="true"></i>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="password" class="form-label">Password</label>
+              <div class="form-input-container">
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  class="form-input"
+                  placeholder="Create a strong password"
+                  required
+                  autocomplete="new-password"
+                  minlength="6"
+                />
+                <i class="fas fa-lock form-input-icon" aria-hidden="true"></i>
+              </div>
+              <div class="password-strength" id="passwordStrength">
+                <div class="password-strength-fill"></div>
+              </div>
+              <div
+                class="password-strength-text"
+                id="passwordStrengthText"
+              ></div>
+            </div>
+
+            <div class="form-group">
+              <label for="confirmPassword" class="form-label"
+                >Confirm Password</label
+              >
+              <div class="form-input-container">
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  class="form-input"
+                  placeholder="Confirm your password"
+                  required
+                  autocomplete="new-password"
+                />
+                <i class="fas fa-lock form-input-icon" aria-hidden="true"></i>
+              </div>
+              <div class="password-match" id="passwordMatch"></div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="submitBtn">
+              Create Account
+              <i
+                class="fas fa-arrow-right"
+                style="margin-left: 8px"
+                aria-hidden="true"
+              ></i>
+            </button>
+          </form>
+
+          <div class="login-link">
+            <p>Already have an account?</p>
+            <a href="{{ url_for('auth.login') }}">Sign in here</a>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    {% include "partials/_footer.html" %}
+  </body>
+
+  <script src="{{ url_for('static', filename='js/register.js') }}"></script>
+</html>

@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Recipes - Preppr</title>
+
+    <!-- Theme initialization (must be first) -->
+    {% include "partials/_theme_init.html" %}
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Base CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/base.css') }}"
+    />
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <style>
+      html, body {
+        height: 100%;
+      }
+
+      body {
+        padding-top: 80px;
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 80px);
+      }
+
+      main {
+        flex: 1 0 auto;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .footer {
+        flex-shrink: 0;
+      }
+
+      .recipes-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .btn-primary {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        font-family: var(--font-family);
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-md);
+        gap: var(--spacing-sm);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .btn-secondary {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        border: 2px solid var(--border-medium);
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        font-family: var(--font-family);
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        gap: var(--spacing-sm);
+      }
+
+      .btn-secondary:hover {
+        background: var(--bg-secondary);
+        border-color: var(--primary-color);
+      }
+
+      .recipes-filters {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .filter-group label {
+        font-weight: 600;
+        margin-bottom: 5px;
+        font-size: 0.9em;
+        color: var(--text-primary);
+      }
+
+      .filter-group select,
+      .filter-group input {
+        padding: 8px;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-sm);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: var(--font-family);
+        font-size: 1rem;
+      }
+
+      .filter-group input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+
+      .recipes-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .stat-card {
+        background: var(--bg-primary);
+        padding: 20px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-light);
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .stat-card h3 {
+        margin: 0 0 5px 0;
+        font-size: 2em;
+        color: var(--text-primary);
+      }
+
+      .stat-card p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9em;
+      }
+
+      .recipes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 20px;
+      }
+
+      .recipe-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        position: relative;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+      }
+
+      .recipe-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+      }
+
+      .recipe-card.favorite {
+        border-left: 4px solid var(--warning-color);
+      }
+
+      .recipe-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+      }
+
+      .recipe-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        font-size: 1.2rem;
+      }
+
+      .recipe-favorite {
+        color: var(--warning-color);
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .recipe-favorite:hover {
+        transform: scale(1.1);
+      }
+
+      .recipe-meta {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 10px;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+
+      .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .recipe-description {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        margin-bottom: 15px;
+        line-height: 1.4;
+      }
+
+      .recipe-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 15px;
+      }
+
+      .recipe-tag {
+        background: var(--primary-color);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+
+      .recipe-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .recipe-actions .left {
+        display: flex;
+        gap: 10px;
+      }
+
+      .recipe-actions button {
+        background: none;
+        border: 1px solid var(--border-medium);
+        color: var(--text-secondary);
+        padding: 6px 12px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+      }
+
+      .recipe-actions button:hover {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border-color: var(--primary-color);
+      }
+
+      .recipe-actions .btn-use {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+
+      .recipe-actions .btn-use:hover {
+        background: var(--primary-dark);
+      }
+
+      .recipe-usage-info {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+      }
+
+      .empty-state h3 {
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .empty-state p {
+        margin-bottom: var(--spacing-lg);
+      }
+
+      /* Modal styles */
+      .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .modal-content {
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: var(--shadow-xl);
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid var(--border-light);
+      }
+
+      .modal-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-secondary);
+        transition: color 0.3s ease;
+      }
+
+      .close-btn:hover {
+        color: var(--text-primary);
+      }
+
+      .modal-body {
+        padding: 20px;
+      }
+
+      .recipe-detail-section {
+        margin-bottom: 25px;
+      }
+
+      .recipe-detail-section h3 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+      }
+
+      .ingredients-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .ingredients-list li {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-light);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .ingredient-name {
+        font-weight: 500;
+      }
+
+      .ingredient-amount {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+
+      .instructions-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        counter-reset: step-counter;
+      }
+
+      .instructions-list li {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-light);
+        position: relative;
+        padding-left: 40px;
+        counter-increment: step-counter;
+      }
+
+      .instructions-list li::before {
+        content: counter(step-counter);
+        position: absolute;
+        left: 0;
+        top: 12px;
+        background: var(--primary-color);
+        color: white;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: space-between;
+        padding: 20px;
+        border-top: 1px solid var(--border-light);
+        background: var(--bg-secondary);
+      }
+
+      @media (max-width: 768px) {
+        .mobile-menu-btn {
+          display: block;
+        }
+
+        .nav-links {
+          display: none;
+        }
+
+        .recipes-filters {
+          grid-template-columns: 1fr;
+        }
+
+        .recipes-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .header-actions {
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .recipe-actions {
+          flex-direction: column;
+          gap: 10px;
+          align-items: stretch;
+        }
+
+        .recipe-actions .left {
+          justify-content: space-between;
+        }
+
+        .modal-content {
+          width: 95%;
+          margin: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    {% include "partials/_navbar.html" %}
+
+    <main>
+      <div class="container">
+        <div class="recipes-header">
+          <h2>My Saved Recipes</h2>
+          <div class="header-actions">
+            <button id="clearFiltersBtn" class="btn-secondary">
+              <i class="fas fa-times"></i> Clear Filters
+            </button>
+            <button id="createRecipeBtn" class="btn-primary">
+              <i class="fas fa-plus"></i> Create Recipe
+            </button>
+          </div>
+        </div>
+
+        <div class="recipes-filters">
+          <div class="filter-group">
+            <label>Search Recipes:</label>
+            <input
+              type="text"
+              id="searchFilter"
+              placeholder="Search by recipe name..."
+            />
+          </div>
+
+          <div class="filter-group">
+            <label>Meal Type:</label>
+            <select id="mealTypeFilter">
+              <option value="">All Meal Types</option>
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="snack">Snack</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Show Only:</label>
+            <select id="favoritesFilter">
+              <option value="">All Recipes</option>
+              <option value="favorites">Favorites Only</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Sort By:</label>
+            <select id="sortFilter">
+              <option value="created_at">Recently Added</option>
+              <option value="name">Name (A-Z)</option>
+              <option value="times_used">Most Used</option>
+              <option value="last_used">Recently Used</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="recipes-stats">
+          <div class="stat-card">
+            <h3 id="totalRecipes">0</h3>
+            <p>Total Recipes</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="favoriteRecipes">0</h3>
+            <p>Favorites</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="totalUses">0</h3>
+            <p>Times Used</p>
+          </div>
+        </div>
+
+        <div id="recipesGrid" class="recipes-grid">
+          <!-- Recipes will be loaded here -->
+        </div>
+
+        <div id="emptyState" class="empty-state" style="display: none">
+          <h3>No recipes saved yet</h3>
+          <p>Save recipes from your meal plans or create your own custom recipes.</p>
+          <button id="createFirstRecipeBtn" class="btn-primary">
+            <i class="fas fa-plus"></i> Create Your First Recipe
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Recipe Detail Modal -->
+    <div id="recipeDetailModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title" id="recipeDetailTitle">Recipe Details</h2>
+          <button class="close-btn" id="closeRecipeDetailBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="recipeDetailContent">
+            <!-- Recipe details will be loaded here -->
+          </div>
+        </div>
+        <div class="modal-actions">
+          <div>
+            <button id="editRecipeBtn" class="btn-secondary">
+              <i class="fas fa-edit"></i> Edit Recipe
+            </button>
+            <button id="favoriteRecipeBtn" class="btn-secondary">
+              <i class="fas fa-heart"></i> <span>Add to Favorites</span>
+            </button>
+            <button id="deleteRecipeBtn" class="btn-secondary" style="color: var(--error-color); border-color: var(--error-color);">
+              <i class="fas fa-trash"></i> Delete Recipe
+            </button>
+          </div>
+          <div>
+            <button id="useRecipeBtn" class="btn-primary">
+              <i class="fas fa-calendar-plus"></i> Use Recipe
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Use Recipe Modal -->
+    <div id="useRecipeModal" class="modal" style="display: none">
+      <div class="modal-content" style="max-width: 500px">
+        <div class="modal-header">
+          <h2 class="modal-title">Use Recipe</h2>
+          <button class="close-btn" id="closeUseRecipeBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="useRecipeForm">
+            <div class="filter-group" style="margin-bottom: 15px">
+              <label for="useMealDate">Date:</label>
+              <input type="date" id="useMealDate" required />
+            </div>
+            
+            <div class="filter-group" style="margin-bottom: 15px">
+              <label for="useMealType">Meal Type:</label>
+              <select id="useMealType" required>
+                <option value="">Select meal type...</option>
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Dinner</option>
+                <option value="snack">Snack</option>
+              </select>
+            </div>
+
+            <div class="filter-group" style="margin-bottom: 15px">
+              <label>
+                <input type="checkbox" id="replaceExistingMeal" />
+                Replace existing meal if one exists
+              </label>
+            </div>
+
+            <div class="filter-group">
+              <label for="useRecipeNotes">Notes (optional):</label>
+              <textarea id="useRecipeNotes" rows="3" style="width: 100%; padding: 8px; border: 1px solid var(--border-light); border-radius: var(--radius-sm);"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelUseRecipeBtn">Cancel</button>
+          <button type="submit" form="useRecipeForm" class="btn-primary">
+            <i class="fas fa-check"></i> Add to Meal Plan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {% include "partials/_footer.html" %}
+
+    <script src="{{ url_for('static', filename='js/subscription-utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/recipes.js') }}"></script>
+  </body>
+</html>

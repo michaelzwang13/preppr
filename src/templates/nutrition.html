@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nutrition - Preppr</title>
+
+    <!-- Theme initialization (must be first) -->
+    {% include "partials/_theme_init.html" %}
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Base CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/base.css') }}"
+    />
+
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      .nutrition-container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      /* Quick Stats Cards */
+      .quick-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--spacing-lg);
+        margin-bottom: var(--spacing-2xl);
+        animation: fadeInUp 0.8s ease 0.2s both;
+      }
+
+      .stat-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        text-align: center;
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-md);
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-xl);
+      }
+
+      .stat-card.primary {
+        background: var(--primary-gradient);
+        color: var(--text-white);
+      }
+
+      .stat-card.success {
+        background: var(--success-gradient);
+        color: var(--text-white);
+      }
+
+      .stat-card.warning {
+        background: var(--warning-gradient);
+        color: var(--text-white);
+      }
+
+      .stat-card.error {
+        background: var(--error-gradient);
+        color: var(--text-white);
+      }
+
+      .stat-icon {
+        font-size: 2rem;
+        margin-bottom: var(--spacing-md);
+        opacity: 0.9;
+      }
+
+      .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: var(--spacing-xs);
+      }
+
+      .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* Dashboard Grid */
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--spacing-xl);
+        margin-bottom: var(--spacing-2xl);
+        animation: fadeInUp 0.8s ease 0.4s both;
+        align-items: stretch;
+      }
+
+      /* Chart Container */
+      .chart-container {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-md);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .chart-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .chart-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .chart-controls {
+        display: flex;
+        gap: var(--spacing-sm);
+      }
+
+      .chart-btn {
+        padding: var(--spacing-xs) var(--spacing-md);
+        border: 1px solid var(--border-light);
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+      }
+
+      .chart-btn.active,
+      .chart-btn:hover {
+        background: var(--primary-color);
+        color: var(--text-white);
+        border-color: var(--primary-color);
+      }
+
+      .chart-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+        position: relative;
+      }
+
+      .chart-canvas {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: none !important;
+      }
+
+      .chart-placeholder {
+        text-align: center;
+        color: var(--text-muted);
+        font-style: italic;
+        padding: var(--spacing-2xl);
+      }
+
+      .chart-placeholder i {
+        font-size: 3rem;
+        margin-bottom: var(--spacing-md);
+        opacity: 0.5;
+      }
+
+      /* Settings Panel */
+      .settings-panel {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-md);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .settings-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-lg);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+      }
+
+      .settings-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-lg);
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+      }
+
+      .form-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .form-input {
+        padding: var(--spacing-md);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        font-size: 1rem;
+        font-family: var(--font-family);
+        transition: border-color 0.2s ease;
+        background: var(--bg-secondary);
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background: var(--bg-primary);
+      }
+
+      /* Goal/Limit Toggle Styles */
+      .form-group-with-toggle {
+        display: flex;
+        align-items: flex-end;
+        gap: var(--spacing-md);
+      }
+
+      .form-input-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+      }
+
+      .goal-limit-toggle {
+        display: flex;
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-light);
+        overflow: hidden;
+        height: 42px;
+        align-items: center;
+      }
+
+      .toggle-option {
+        flex: 1;
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: transparent;
+        border: none;
+        font-family: var(--font-family);
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+        min-width: 60px;
+      }
+
+      .toggle-option.active {
+        background: var(--primary-color);
+        color: var(--text-white);
+      }
+
+      .toggle-option:hover:not(.active) {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+      }
+
+      .toggle-option.goal.active {
+        background: var(--success-color);
+      }
+
+      .toggle-option.limit.active {
+        background: var(--warning-color);
+      }
+
+      @media (max-width: 768px) {
+        .form-group-with-toggle {
+          flex-direction: column;
+          align-items: stretch;
+          gap: var(--spacing-sm);
+        }
+
+        .goal-limit-toggle {
+          align-self: center;
+          width: 140px;
+        }
+      }
+
+      .btn-primary {
+        background: var(--primary-gradient);
+        color: var(--text-white);
+        border: none;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius-md);
+        font-size: 1rem;
+        font-family: var(--font-family);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-sm);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      /* Responsive Design */
+      @media (max-width: 1024px) {
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .mobile-menu-btn {
+          display: block;
+        }
+        
+        .nav-links {
+          display: none;
+        }
+
+        .main-content {
+          padding: 100px var(--spacing-md) var(--spacing-lg);
+        }
+
+        .quick-stats {
+          grid-template-columns: repeat(2, 1fr);
+          gap: var(--spacing-md);
+        }
+
+        .chart-wrapper {
+          min-height: 250px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .quick-stats {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Animations */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Focus styles for accessibility */
+      .btn-primary:focus,
+      .form-input:focus,
+      .chart-btn:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+
+      /* Nutrition Disabled Overlay */
+      .nutrition-disabled-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .nutrition-disabled-popup {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-2xl);
+        box-shadow: var(--shadow-2xl);
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        animation: slideUp 0.3s ease;
+        border: 1px solid var(--border-light);
+      }
+
+      .popup-icon {
+        font-size: 4rem;
+        color: var(--primary-color);
+        margin-bottom: var(--spacing-lg);
+        opacity: 0.8;
+      }
+
+      .popup-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-md);
+      }
+
+      .popup-message {
+        font-size: 1.125rem;
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-xl);
+        line-height: 1.6;
+      }
+
+      .popup-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .btn-enable {
+        background: var(--primary-gradient);
+        color: var(--text-white);
+        border: none;
+        padding: var(--spacing-md) var(--spacing-xl);
+        border-radius: var(--radius-md);
+        font-size: 1rem;
+        font-family: var(--font-family);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-sm);
+        text-decoration: none;
+      }
+
+      .btn-enable:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        text-decoration: none;
+        color: var(--text-white);
+      }
+
+      .btn-secondary {
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-light);
+        padding: var(--spacing-md) var(--spacing-xl);
+        border-radius: var(--radius-md);
+        font-size: 1rem;
+        font-family: var(--font-family);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-sm);
+      }
+
+      .btn-secondary:hover {
+        background: var(--bg-primary);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        text-decoration: none;
+      }
+
+      .nutrition-content-blurred {
+        filter: blur(8px);
+        pointer-events: none;
+        user-select: none;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px) scale(0.9);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    {% include "partials/_navbar.html" %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="nutrition-container{% if not nutrition_tracking_enabled %} nutrition-content-blurred{% endif %}">
+        <!-- Page Header -->
+        <section class="page-header">
+          <h1 class="page-title">Nutrition Analytics</h1>
+          <p class="page-subtitle">
+            Track your nutrition goals, analyze your eating patterns, and optimize your health
+          </p>
+        </section>
+
+        <!-- Quick Stats -->
+        <section class="quick-stats">
+          <div class="stat-card primary">
+            <div class="stat-icon">
+              <i class="fas fa-fire" aria-hidden="true"></i>
+            </div>
+            <div class="stat-value" id="todayCalories">2,150</div>
+            <div class="stat-label">Calories Today</div>
+          </div>
+
+          <div class="stat-card success">
+            <div class="stat-icon">
+              <i class="fas fa-dumbbell" aria-hidden="true"></i>
+            </div>
+            <div class="stat-value" id="todayProtein">128g</div>
+            <div class="stat-label">Protein Today</div>
+          </div>
+
+          <div class="stat-card warning">
+            <div class="stat-icon">
+              <i class="fas fa-chart-pie" aria-hidden="true"></i>
+            </div>
+            <div class="stat-value" id="goalProgress">85%</div>
+            <div class="stat-label">Goal Progress</div>
+          </div>
+
+          <div class="stat-card error">
+            <div class="stat-icon">
+              <i class="fas fa-target" aria-hidden="true"></i>
+            </div>
+            <div class="stat-value" id="avgWeekly">7.2</div>
+            <div class="stat-label">Weekly Avg Score</div>
+          </div>
+        </section>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+          <!-- Nutrition Chart -->
+          <div class="chart-container">
+            <div class="chart-header">
+              <h3 class="chart-title">Nutrition Trends</h3>
+              <div class="chart-controls">
+                <button class="chart-btn active" data-period="7d">7D</button>
+                <button class="chart-btn" data-period="1m">1M</button>
+                <button class="chart-btn" data-period="3m">3M</button>
+                <button class="chart-btn" data-period="1y">1Y</button>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <div class="chart-placeholder">
+                <i class="fas fa-chart-line"></i>
+                <div>Nutrition analytics charts will be implemented here</div>
+                <div style="font-size: 0.875rem; margin-top: var(--spacing-sm);">
+                  Coming soon: Daily macro tracking, weekly trends, and goal progress visualization
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nutrition Goals Settings -->
+          <div class="settings-panel">
+            <h3 class="settings-title">
+              <i class="fas fa-bullseye" aria-hidden="true"></i>
+              Nutrition Goals
+            </h3>
+            <form class="settings-form" id="nutritionGoalsForm">
+              <div class="form-group-with-toggle">
+                <div class="form-input-wrapper">
+                  <label for="dailyCaloriesInput" class="form-label">Daily Calories</label>
+                  <input
+                    type="number"
+                    id="dailyCaloriesInput"
+                    class="form-input"
+                    value="2000"
+                    min="1200"
+                    max="5000"
+                    step="50"
+                    placeholder="Enter calories"
+                  />
+                </div>
+                <div class="goal-limit-toggle" data-metric="calories">
+                  <button type="button" class="toggle-option goal active" data-type="goal">Goal</button>
+                  <button type="button" class="toggle-option limit" data-type="limit">Limit</button>
+                </div>
+              </div>
+
+              <div class="form-group-with-toggle">
+                <div class="form-input-wrapper">
+                  <label for="dailyProteinInput" class="form-label">Protein (g)</label>
+                  <input
+                    type="number"
+                    id="dailyProteinInput"
+                    class="form-input"
+                    value="150"
+                    min="50"
+                    max="300"
+                    step="5"
+                    placeholder="Enter protein"
+                  />
+                </div>
+                <div class="goal-limit-toggle" data-metric="protein">
+                  <button type="button" class="toggle-option goal active" data-type="goal">Goal</button>
+                  <button type="button" class="toggle-option limit" data-type="limit">Limit</button>
+                </div>
+              </div>
+
+              <div class="form-group-with-toggle">
+                <div class="form-input-wrapper">
+                  <label for="dailyCarbsInput" class="form-label">Carbs (g)</label>
+                  <input
+                    type="number"
+                    id="dailyCarbsInput"
+                    class="form-input"
+                    value="250"
+                    min="50"
+                    max="500"
+                    step="10"
+                    placeholder="Enter carbs"
+                  />
+                </div>
+                <div class="goal-limit-toggle" data-metric="carbs">
+                  <button type="button" class="toggle-option goal active" data-type="goal">Goal</button>
+                  <button type="button" class="toggle-option limit" data-type="limit">Limit</button>
+                </div>
+              </div>
+
+              <div class="form-group-with-toggle">
+                <div class="form-input-wrapper">
+                  <label for="dailyFatInput" class="form-label">Fat (g)</label>
+                  <input
+                    type="number"
+                    id="dailyFatInput"
+                    class="form-input"
+                    value="70"
+                    min="20"
+                    max="150"
+                    step="5"
+                    placeholder="Enter fat"
+                  />
+                </div>
+                <div class="goal-limit-toggle" data-metric="fat">
+                  <button type="button" class="toggle-option goal active" data-type="goal">Goal</button>
+                  <button type="button" class="toggle-option limit" data-type="limit">Limit</button>
+                </div>
+              </div>
+
+              <div class="form-group-with-toggle">
+                <div class="form-input-wrapper">
+                  <label for="dailyFiberInput" class="form-label">Fiber (g)</label>
+                  <input
+                    type="number"
+                    id="dailyFiberInput"
+                    class="form-input"
+                    value="25"
+                    min="15"
+                    max="50"
+                    step="1"
+                    placeholder="Enter fiber"
+                  />
+                </div>
+                <div class="goal-limit-toggle" data-metric="fiber">
+                  <button type="button" class="toggle-option goal active" data-type="goal">Goal</button>
+                  <button type="button" class="toggle-option limit" data-type="limit">Limit</button>
+                </div>
+              </div>
+
+              <div class="form-group-with-toggle">
+                <div class="form-input-wrapper">
+                  <label for="dailySodiumLimitInput" class="form-label">Sodium (mg)</label>
+                  <input
+                    type="number"
+                    id="dailySodiumLimitInput"
+                    class="form-input"
+                    value="2300"
+                    min="1500"
+                    max="4000"
+                    step="100"
+                    placeholder="Enter sodium amount"
+                  />
+                </div>
+                <div class="goal-limit-toggle" data-metric="sodium">
+                  <button type="button" class="toggle-option goal" data-type="goal">Goal</button>
+                  <button type="button" class="toggle-option limit active" data-type="limit">Limit</button>
+                </div>
+              </div>
+
+              <button type="submit" class="btn-primary">
+                <i class="fas fa-save" aria-hidden="true"></i>
+                Save Nutrition Goals
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Nutrition Disabled Overlay -->
+    {% if not nutrition_tracking_enabled %}
+    <div class="nutrition-disabled-overlay">
+      <div class="nutrition-disabled-popup">
+        <div class="popup-icon">
+          <i class="fas fa-chart-pie" aria-hidden="true"></i>
+        </div>
+        <h2 class="popup-title">Nutrition Tracking Disabled</h2>
+        <p class="popup-message">
+          Enable nutrition tracking to monitor your macros, set goals, and analyze your eating patterns.
+        </p>
+        <div class="popup-actions">
+          <a href="{{ url_for('auth.settings') }}" class="btn-enable">
+            <i class="fas fa-toggle-on" aria-hidden="true"></i>
+            Enable Nutrition Tracking
+          </a>
+          <a href="{{ url_for('shopping.home') }}" class="btn-secondary">
+            <i class="fas fa-home" aria-hidden="true"></i>
+            Go to Home
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% include "partials/_footer.html" %}
+
+    <script src="{{ url_for('static', filename='js/subscription-utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/nutrition.js') }}"></script>
+  </body>
+</html>

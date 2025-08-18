@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upgrade to Premium - Preppr</title>
+
+    <!-- Theme initialization (must be first) -->
+    {% include 'partials/_theme_init.html' %}
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Base CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/base.css') }}"
+    />
+
+    <!-- Stripe Elements -->
+    <script src="https://js.stripe.com/v3/"></script>
+
+    <style>
+      .upgrade-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: var(--spacing-2xl) var(--spacing-lg);
+      }
+
+      /* Hero Section */
+      .upgrade-hero {
+        text-align: center;
+        background: var(--primary-gradient);
+        color: white;
+        padding: var(--spacing-3xl) var(--spacing-lg);
+        border-radius: var(--radius-2xl);
+        margin-bottom: var(--spacing-3xl);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .upgrade-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" fill-opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        opacity: 0.1;
+      }
+
+      .upgrade-hero > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-icon {
+        font-size: 4rem;
+        margin-bottom: var(--spacing-lg);
+        opacity: 0.9;
+        animation: bounce 2s infinite;
+      }
+
+      .hero-title {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: var(--spacing-md);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .hero-subtitle {
+        font-size: 1.25rem;
+        opacity: 0.9;
+        margin-bottom: var(--spacing-lg);
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero-badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.2);
+        padding: var(--spacing-sm) var(--spacing-lg);
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+      }
+
+      /* Pricing Section */
+      .pricing-section {
+        margin-bottom: var(--spacing-3xl);
+      }
+
+      .section-title {
+        text-align: center;
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-xl);
+      }
+
+      .pricing-toggle {
+        text-align: center;
+        margin-bottom: var(--spacing-2xl);
+      }
+
+      .toggle-wrapper {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        background: var(--bg-secondary);
+        padding: var(--spacing-sm);
+        border-radius: var(--radius-full);
+        border: 1px solid var(--border-light);
+      }
+
+      .toggle-option {
+        padding: var(--spacing-sm) var(--spacing-lg);
+        border-radius: var(--radius-full);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+      }
+
+      .toggle-option.active {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: var(--shadow-md);
+      }
+
+      .pricing-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--spacing-xl);
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .pricing-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-2xl);
+        padding: var(--spacing-2xl);
+        border: 2px solid var(--border-light);
+        position: relative;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-md);
+      }
+
+      .pricing-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-2xl);
+        border-color: var(--primary-color);
+      }
+
+      .pricing-card.popular {
+        border-color: var(--primary-color);
+        transform: scale(1.05);
+      }
+
+      .pricing-card.popular::before {
+        content: 'Most Popular';
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--primary-gradient);
+        color: white;
+        padding: var(--spacing-xs) var(--spacing-lg);
+        border-radius: var(--radius-full);
+        font-size: 0.875rem;
+        font-weight: 600;
+        box-shadow: var(--shadow-md);
+      }
+
+      .plan-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-sm);
+      }
+
+      .plan-price {
+        margin-bottom: var(--spacing-md);
+      }
+
+      .price-amount {
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--primary-color);
+      }
+
+      .price-period {
+        color: var(--text-secondary);
+        font-size: 1rem;
+      }
+
+      .price-savings {
+        color: var(--success-color);
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-top: var(--spacing-xs);
+      }
+
+      .plan-features {
+        list-style: none;
+        padding: 0;
+        margin: var(--spacing-lg) 0;
+      }
+
+      .plan-features li {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+        color: var(--text-primary);
+      }
+
+      .plan-features i {
+        color: var(--success-color);
+        width: 16px;
+      }
+
+      .select-plan-btn {
+        width: 100%;
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: var(--spacing-lg);
+        border-radius: var(--radius-xl);
+        font-size: 1.125rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-sm);
+      }
+
+      .select-plan-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      /* Payment Section */
+      .payment-section {
+        background: var(--bg-secondary);
+        border-radius: var(--radius-2xl);
+        padding: var(--spacing-2xl);
+        margin-bottom: var(--spacing-3xl);
+        border: 1px solid var(--border-light);
+      }
+
+      .payment-methods {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-xl);
+      }
+
+      .payment-method {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        border: 1px solid var(--border-light);
+      }
+
+      .method-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-lg);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+      }
+
+      .stripe-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+      }
+
+      .form-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+      }
+
+      .form-input {
+        padding: var(--spacing-md);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        font-size: 1rem;
+        transition: border-color 0.2s ease;
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+
+      #card-element {
+        padding: var(--spacing-md);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        background: white;
+      }
+
+      .payment-btn {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: var(--spacing-lg);
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-sm);
+      }
+
+      .payment-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .payment-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .code-input {
+        display: flex;
+        gap: var(--spacing-sm);
+      }
+
+      .code-input input {
+        flex: 1;
+      }
+
+      .redeem-btn {
+        background: var(--success-gradient);
+        color: white;
+        border: none;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+      }
+
+      .redeem-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+      }
+
+      /* Features Section */
+      .features-section {
+        margin-bottom: var(--spacing-3xl);
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--spacing-xl);
+      }
+
+      .feature-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        border: 1px solid var(--border-light);
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary-color);
+      }
+
+      .feature-icon {
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        margin-bottom: var(--spacing-md);
+      }
+
+      .feature-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-sm);
+      }
+
+      .feature-description {
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      /* FAQ Section */
+      .faq-section {
+        margin-bottom: var(--spacing-3xl);
+      }
+
+      .faq-grid {
+        display: grid;
+        gap: var(--spacing-lg);
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .faq-item {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--border-light);
+        overflow: hidden;
+      }
+
+      .faq-question {
+        padding: var(--spacing-lg);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 600;
+        color: var(--text-primary);
+        transition: background-color 0.2s ease;
+      }
+
+      .faq-question:hover {
+        background: var(--bg-secondary);
+      }
+
+      .faq-answer {
+        padding: 0 var(--spacing-lg) var(--spacing-lg);
+        color: var(--text-secondary);
+        line-height: 1.6;
+        display: none;
+      }
+
+      .faq-item.active .faq-answer {
+        display: block;
+      }
+
+      .faq-item.active .faq-icon {
+        transform: rotate(180deg);
+      }
+
+      .faq-icon {
+        transition: transform 0.3s ease;
+      }
+
+      /* Trust Indicators */
+      .trust-section {
+        text-align: center;
+        background: var(--bg-secondary);
+        padding: var(--spacing-2xl);
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--border-light);
+      }
+
+      .trust-badges {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xl);
+        flex-wrap: wrap;
+      }
+
+      .trust-badge {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+      }
+
+      .trust-badge i {
+        color: var(--success-color);
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .upgrade-container {
+          padding: var(--spacing-lg) var(--spacing-md);
+        }
+
+        .hero-title {
+          font-size: 2rem;
+        }
+
+        .payment-methods {
+          grid-template-columns: 1fr;
+        }
+
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .trust-badges {
+          flex-direction: column;
+          gap: var(--spacing-md);
+        }
+      }
+
+      /* Animations */
+      @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-10px);
+        }
+        60% {
+          transform: translateY(-5px);
+        }
+      }
+
+      .animate-fade-in {
+        animation: fadeIn 0.8s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Error and Success Messages */
+      .message {
+        padding: var(--spacing-md);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--spacing-md);
+        display: none;
+      }
+
+      .message.error {
+        background: var(--error-light);
+        color: var(--error-dark);
+        border: 1px solid var(--error-color);
+      }
+
+      .message.success {
+        background: var(--success-light);
+        color: var(--success-dark);
+        border: 1px solid var(--success-color);
+      }
+
+      .message.show {
+        display: block;
+        animation: fadeIn 0.3s ease;
+      }
+    </style>
+  </head>
+  <body>
+    {% include "partials/_navbar.html" %}
+
+    <main class="main-content">
+      <div class="upgrade-container">
+        <!-- Hero Section -->
+        <section class="upgrade-hero animate-fade-in">
+          <div class="hero-icon">
+            <i class="fas fa-crown"></i>
+          </div>
+          <h1 class="hero-title">Upgrade to Preppr Premium</h1>
+          <p class="hero-subtitle">
+            Unlock unlimited meal planning, full macro tracking, and advanced features to transform your cooking experience.
+          </p>
+          <div class="hero-badge">
+            <i class="fas fa-shield-alt"></i>
+            30-day money-back guarantee
+          </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section class="pricing-section">
+          <h2 class="section-title">Choose Your Plan</h2>
+          
+          <div class="pricing-toggle">
+            <div class="toggle-wrapper">
+              <div class="toggle-option active" data-period="annual">
+                Annual <span style="color: var(--success-color); font-weight: 700;">(Save 37%)</span>
+              </div>
+              <div class="toggle-option" data-period="monthly">Monthly</div>
+            </div>
+          </div>
+
+          <div class="pricing-cards">
+            <!-- Annual Plan -->
+            <div class="pricing-card popular annual-plan">
+              <div class="plan-name">Annual Premium</div>
+              <div class="plan-price">
+                <div class="price-amount">$59.99</div>
+                <div class="price-period">per year</div>
+                <div class="price-savings">Save 37% • Just $4.99/month</div>
+              </div>
+              <ul class="plan-features">
+                <li><i class="fas fa-check"></i> Everything in Premium</li>
+                <li><i class="fas fa-check"></i> Best value for families</li>
+                <li><i class="fas fa-check"></i> 2 months free</li>
+                <li><i class="fas fa-check"></i> Priority support</li>
+              </ul>
+              <button class="select-plan-btn" data-plan="annual">
+                <i class="fas fa-crown"></i>
+                Start Annual Plan
+              </button>
+            </div>
+
+            <!-- Monthly Plan -->
+            <div class="pricing-card monthly-plan">
+              <div class="plan-name">Monthly Premium</div>
+              <div class="plan-price">
+                <div class="price-amount">$7.99</div>
+                <div class="price-period">per month</div>
+                <div class="price-savings">Cancel anytime</div>
+              </div>
+              <ul class="plan-features">
+                <li><i class="fas fa-check"></i> All Premium features</li>
+                <li><i class="fas fa-check"></i> Flexible billing</li>
+                <li><i class="fas fa-check"></i> No commitment</li>
+                <li><i class="fas fa-check"></i> Try risk-free</li>
+              </ul>
+              <button class="select-plan-btn" data-plan="monthly">
+                <i class="fas fa-star"></i>
+                Start Monthly Plan
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Payment Section -->
+        <section class="payment-section">
+          <h3 class="section-title">Complete Your Upgrade</h3>
+          
+          <div class="payment-methods">
+            <!-- Credit Card Payment -->
+            <div class="payment-method">
+              <h4 class="method-title">
+                <i class="fas fa-credit-card"></i>
+                Pay with Card
+              </h4>
+              
+              <div id="payment-messages" class="message"></div>
+              
+              <form id="payment-form" class="stripe-form">
+                <div class="form-group">
+                  <label class="form-label" for="email">Email</label>
+                  <input type="email" id="email" class="form-input" placeholder="your@email.com" required>
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label">Card Information</label>
+                  <div id="card-element">
+                    <!-- Stripe Elements will create form elements here -->
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="name">Name on Card</label>
+                  <input type="text" id="name" class="form-input" placeholder="Full name" required>
+                </div>
+                
+                <button type="submit" id="submit-payment" class="payment-btn">
+                  <i class="fas fa-lock"></i>
+                  <span id="payment-btn-text">Complete Payment</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Promo Code -->
+            <div class="payment-method">
+              <h4 class="method-title">
+                <i class="fas fa-ticket-alt"></i>
+                Redeem Code
+              </h4>
+              
+              <div id="code-messages" class="message"></div>
+              
+              <form id="code-form">
+                <div class="form-group">
+                  <label class="form-label" for="promo-code">Promotional Code</label>
+                  <div class="code-input">
+                    <input type="text" id="promo-code" class="form-input" placeholder="Enter your code" required>
+                    <button type="submit" class="redeem-btn">
+                      <i class="fas fa-gift"></i>
+                      Redeem
+                    </button>
+                  </div>
+                </div>
+              </form>
+              
+              <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: var(--spacing-md);">
+                Have a special promotional code? Enter it here to unlock Premium access.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Premium Features -->
+        <section class="features-section">
+          <h2 class="section-title">Premium Features</h2>
+          <div class="features-grid">
+            {% for feature in features %}
+            <div class="feature-card">
+              <div class="feature-icon">
+                <i class="{{ feature.icon }}"></i>
+              </div>
+              <h3 class="feature-title">{{ feature.title }}</h3>
+              <p class="feature-description">{{ feature.description }}</p>
+            </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="faq-section">
+          <h2 class="section-title">Frequently Asked Questions</h2>
+          <div class="faq-grid">
+            <div class="faq-item">
+              <div class="faq-question">
+                <span>Can I cancel my subscription anytime?</span>
+                <i class="fas fa-chevron-down faq-icon"></i>
+              </div>
+              <div class="faq-answer">
+                Yes! You can cancel your subscription at any time from your account settings. You'll continue to have Premium access until the end of your billing period.
+              </div>
+            </div>
+
+            <div class="faq-item">
+              <div class="faq-question">
+                <span>What happens to my data if I downgrade?</span>
+                <i class="fas fa-chevron-down faq-icon"></i>
+              </div>
+              <div class="faq-answer">
+                Your data is always safe with us. If you downgrade, you'll still have access to all your saved recipes and meal plans, but you'll be subject to the free tier limits for new content.
+              </div>
+            </div>
+
+            <div class="faq-item">
+              <div class="faq-question">
+                <span>Is there a family plan available?</span>
+                <i class="fas fa-chevron-down faq-icon"></i>
+              </div>
+              <div class="faq-answer">
+                Currently, each Premium subscription is for individual use. However, Premium users get unlimited recipe saving and meal planning, making it perfect for planning family meals.
+              </div>
+            </div>
+
+            <div class="faq-item">
+              <div class="faq-question">
+                <span>How secure is my payment information?</span>
+                <i class="fas fa-chevron-down faq-icon"></i>
+              </div>
+              <div class="faq-answer">
+                We use Stripe for payment processing, which provides bank-level security. We never store your payment information on our servers.
+              </div>
+            </div>
+
+            <div class="faq-item">
+              <div class="faq-question">
+                <span>Will my free tier data be preserved?</span>
+                <i class="fas fa-chevron-down faq-icon"></i>
+              </div>
+              <div class="faq-answer">
+                Absolutely! All your existing recipes, meal plans, and pantry items will remain intact when you upgrade to Premium.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Trust Indicators -->
+        <section class="trust-section">
+          <div class="trust-badges">
+            <div class="trust-badge">
+              <i class="fas fa-shield-check"></i>
+              Secure SSL encryption
+            </div>
+            <div class="trust-badge">
+              <i class="fas fa-undo"></i>
+              30-day money-back guarantee
+            </div>
+            <div class="trust-badge">
+              <i class="fas fa-credit-card"></i>
+              Powered by Stripe
+            </div>
+            <div class="trust-badge">
+              <i class="fas fa-times-circle"></i>
+              Cancel anytime
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    {% include "partials/_footer.html" %}
+
+    <script src="{{ url_for('static', filename='js/upgrade.js') }}"></script>
+  </body>
+</html>

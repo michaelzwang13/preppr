@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Pantry - Preppr</title>
+
+    <!-- Theme initialization (must be first) -->
+    {% include "partials/_theme_init.html" %}
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Base CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/base.css') }}"
+    />
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <style>
+      html, body {
+        height: 100%;
+      }
+
+      body {
+        padding-top: 80px;
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 80px);
+      }
+
+      main {
+        flex: 1 0 auto;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .footer {
+        flex-shrink: 0;
+      }
+
+      .pantry-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+      }
+
+      .btn-primary {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-family: var(--font-family);
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-md);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .pantry-filters {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .filter-group label {
+        font-weight: 600;
+        margin-bottom: 5px;
+        font-size: 0.9em;
+        color: var(--text-primary);
+      }
+
+      .filter-group select,
+      .filter-group input {
+        padding: 8px;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-sm);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: var(--font-family);
+        font-size: 1rem;
+      }
+
+      .filter-group input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+
+      /* Tag System Styles */
+      .tag-input-container {
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-sm);
+        background: var(--bg-primary);
+        min-height: 80px;
+      }
+
+      .selected-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+        min-height: 32px;
+      }
+
+      .tag-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 16px;
+        font-size: 0.8em;
+        font-weight: 500;
+        color: white;
+        gap: 4px;
+      }
+
+      .tag-badge .remove-tag {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 0;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        opacity: 0.8;
+      }
+
+      .tag-badge .remove-tag:hover {
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .tag-input-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .tag-input-row input {
+        flex: 1;
+        border: none;
+        outline: none;
+        padding: 6px;
+        font-size: 0.9em;
+        background: transparent;
+      }
+
+      .btn-tag {
+        padding: 6px 12px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: 0.8em;
+        font-weight: 500;
+        transition: background 0.2s ease;
+      }
+
+      .btn-tag:hover {
+        background: var(--primary-dark);
+      }
+
+      .btn-tag:disabled {
+        background: var(--text-secondary);
+        cursor: not-allowed;
+      }
+
+      .tag-suggestions {
+        margin-top: 8px;
+        max-height: 120px;
+        overflow-y: auto;
+        border-top: 1px solid var(--border-light);
+        padding-top: 8px;
+      }
+
+      .tag-suggestion {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 8px;
+        cursor: pointer;
+        border-radius: var(--radius-sm);
+        transition: background 0.2s ease;
+        font-size: 0.9em;
+      }
+
+      .tag-suggestion:hover {
+        background: var(--bg-secondary);
+      }
+
+      .tag-suggestion-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .tag-suggestion-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+
+      .tag-suggestion-usage {
+        font-size: 0.8em;
+        color: var(--text-secondary);
+      }
+
+      .item-tags-container {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 100px;
+        max-width: 150px;
+      }
+
+      .item-tag {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-size: 0.7em;
+        font-weight: 500;
+        color: white;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+
+      .item-tag-overflow {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-size: 0.7em;
+        font-weight: 500;
+        color: var(--text-secondary);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-light);
+        text-align: center;
+      }
+
+      .pantry-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .stat-card {
+        background: var(--bg-primary);
+        padding: 20px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-light);
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .stat-card.expired {
+        border-left: 4px solid var(--error-color);
+      }
+
+      .stat-card.warning {
+        border-left: 4px solid var(--warning-color);
+      }
+
+      .stat-card h3 {
+        margin: 0 0 5px 0;
+        font-size: 2em;
+        color: var(--text-primary);
+      }
+
+      .stat-card p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9em;
+      }
+
+      .pantry-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 15px;
+      }
+
+      .category-section {
+        margin-bottom: var(--spacing-2xl);
+      }
+
+      .category-header {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+        padding-bottom: var(--spacing-sm);
+        border-bottom: 2px solid var(--border-light);
+      }
+
+      .category-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-white);
+        font-size: 1.2rem;
+      }
+
+      .category-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+      }
+
+      .category-count {
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .category-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 15px;
+      }
+
+      .pantry-item {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 15px;
+        position: relative;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+      }
+
+      .pantry-item:hover {
+        box-shadow: var(--shadow-md);
+      }
+
+      .pantry-item.expired {
+        border-left: 4px solid var(--error-color);
+      }
+
+      .pantry-item.expiring-soon {
+        border-left: 4px solid var(--warning-color);
+      }
+
+      /* Highlighting animation for newly added items */
+      .pantry-item.newly-added-item {
+        animation: highlightItem 3s ease-out;
+        border: 2px solid var(--primary-color) !important;
+      }
+
+      @keyframes highlightItem {
+        0% {
+          border-color: var(--primary-color);
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        }
+        25% {
+          border-color: var(--primary-color);
+          box-shadow: 0 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+        50% {
+          border-color: var(--primary-color);
+          box-shadow: 0 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+        75% {
+          border-color: var(--primary-color);
+          box-shadow: 0 0 0 10px rgba(16, 185, 129, 0.05);
+        }
+        100% {
+          border-color: var(--primary-color);
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+      }
+
+      .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+      }
+
+      .item-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+      }
+
+      .item-actions {
+        display: flex;
+        gap: 5px;
+      }
+
+      .item-actions button {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 2px 5px;
+        border-radius: var(--radius-sm);
+        transition: all 0.3s ease;
+      }
+
+      .item-actions button:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+      }
+
+      .item-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 15px;
+      }
+
+      .item-details {
+        font-size: 0.9em;
+        color: var(--text-secondary);
+        flex: 1;
+      }
+
+      .item-details p {
+        margin: 5px 0;
+      }
+
+      .expiry-status {
+        font-weight: 600;
+      }
+
+      .expiry-status.expired {
+        color: var(--error-color);
+      }
+
+      .expiry-status.expiring-soon {
+        color: var(--warning-color);
+      }
+
+      .expiry-status.fresh {
+        color: var(--success-color);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+      }
+
+      .empty-state p {
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .modal-content {
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: var(--shadow-xl);
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 20px 0;
+        border-bottom: 1px solid var(--border-light);
+        margin-bottom: 20px;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5em;
+        cursor: pointer;
+        color: var(--text-secondary);
+        transition: all 0.3s ease;
+      }
+
+      .close-btn:hover {
+        color: var(--text-primary);
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+        padding: 0 20px;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        padding: 0 20px;
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 5px;
+        font-size: 0.9em;
+        color: var(--text-primary);
+      }
+
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: var(--spacing-md);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        box-sizing: border-box;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: var(--font-family);
+        font-size: 1rem;
+        transition: border-color 0.2s ease;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background: var(--bg-primary);
+      }
+
+
+      .ai-predict {
+        display: flex !important;
+        align-items: center;
+        margin-top: 8px;
+        font-weight: normal !important;
+      }
+
+      .ai-predict input {
+        width: auto !important;
+        margin-right: 8px;
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 20px;
+        border-top: 1px solid var(--border-light);
+        margin-top: 20px;
+      }
+
+      .btn-secondary {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 2px solid var(--border-medium);
+        padding: var(--spacing-sm) var(--spacing-lg);
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        font-family: var(--font-family);
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-decoration: none;
+      }
+
+      .btn-secondary:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+      }
+
+      @media (max-width: 768px) {
+        .mobile-menu-btn {
+          display: block;
+        }
+        /* Mobile dropdown adjustments */
+        .dropdown-menu {
+          position: fixed;
+          top: 80px;
+          left: var(--spacing-md);
+          right: var(--spacing-md);
+          min-width: calc(100% - 2 * var(--spacing-md));
+          border-radius: var(--radius-xl);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15),
+            0 8px 16px rgba(0, 0, 0, 0.1);
+          transform: translateY(-20px) scale(0.95);
+          backdrop-filter: blur(20px);
+        }
+        .dropdown-menu::before {
+          display: none;
+        }
+        .nav-dropdown:hover .dropdown-menu,
+        .nav-dropdown.active .dropdown-menu {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .nav-links {
+          display: none;
+        }
+
+        .pantry-filters {
+          grid-template-columns: 1fr;
+        }
+
+        .pantry-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .category-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .category-header {
+          flex-wrap: wrap;
+          gap: var(--spacing-sm);
+        }
+
+        .category-title {
+          font-size: 1.25rem;
+        }
+
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    {% include "partials/_navbar.html" %}
+
+    <main>
+      <div class="container">
+      <div class="pantry-header">
+        <h2>My Pantry</h2>
+        <div class="header-actions">
+          <button
+            id="deleteExpiredBtn"
+            class="btn-secondary"
+            style="
+              margin-right: 10px;
+              font-size: 0.9rem;
+              padding: var(--spacing-sm) var(--spacing-md);
+            "
+          >
+            <i class="fas fa-trash"></i> Delete All Expired
+          </button>
+          <button
+            id="clearFiltersBtn"
+            class="btn-secondary"
+            style="
+              margin-right: 10px;
+              font-size: 0.9rem;
+              padding: var(--spacing-sm) var(--spacing-md);
+            "
+          >
+            <i class="fas fa-times"></i> Clear Filters
+          </button>
+          <button
+            id="addItemBtn"
+            class="btn-primary"
+            style="
+              font-size: 0.9rem;
+              padding: var(--spacing-sm) var(--spacing-md);
+            "
+          >
+            + Add Item Manually
+          </button>
+        </div>
+      </div>
+
+      <div class="pantry-filters">
+        <div class="filter-group">
+          <label>Search Items:</label>
+          <input
+            type="text"
+            id="searchFilter"
+            placeholder="Search by item name"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label>Storage Location:</label>
+          <select id="storageFilter">
+            <option value="">All Locations</option>
+            <option value="pantry">Pantry</option>
+            <option value="fridge">Refrigerator</option>
+            <option value="freezer">Freezer</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Category:</label>
+          <select id="categoryFilter">
+            <option value="">All Categories</option>
+            <option value="Produce">Produce</option>
+            <option value="Meat">Meat</option>
+            <option value="Dairy">Dairy</option>
+            <option value="Grains">Grains</option>
+            <option value="Canned Goods">Canned Goods</option>
+            <option value="Frozen Foods">Frozen Foods</option>
+            <option value="Beverages">Beverages</option>
+            <option value="Snacks">Snacks</option>
+            <option value="Condiments">Condiments</option>
+            <option value="Spices">Spices</option>
+            <option value="Bread">Bread</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Tag Filter:</label>
+          <select id="tagFilter">
+            <option value="">All Tags</option>
+            <!-- Dynamic tags will be populated here -->
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Expiration Status:</label>
+          <select id="expiryFilter">
+            <option value="">All Items</option>
+            <option value="expired">Expired</option>
+            <option value="expiring_soon">Expiring Soon (3 days)</option>
+            <option value="fresh">Fresh</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pantry-stats">
+        <div class="stat-card">
+          <h3 id="totalItems">0</h3>
+          <p>Total Items</p>
+        </div>
+        <div class="stat-card expired">
+          <h3 id="expiredItems">0</h3>
+          <p>Expired</p>
+        </div>
+        <div class="stat-card warning">
+          <h3 id="expiringSoonItems">0</h3>
+          <p>Expiring Soon</p>
+        </div>
+      </div>
+
+      <div id="pantryItems" class="pantry-grid">
+        <!-- Items will be loaded here -->
+      </div>
+
+      <div id="emptyState" class="empty-state" style="display: none">
+        <h3>Your pantry is empty</h3>
+        <p>Start by completing a shopping trip or adding items manually.</p>
+        <button id="addFirstItemBtn" class="btn-primary">
+          Add Your First Item
+        </button>
+      </div>
+      </div>
+    </main>
+
+    <!-- Add Item Modal -->
+    <div id="addItemModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add Item to Pantry</h3>
+          <button class="close-btn">&times;</button>
+        </div>
+
+        <form id="addItemForm">
+          <div class="form-group">
+            <label>Item Name:</label>
+            <input type="text" name="item_name" required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Quantity:</label>
+              <input
+                type="number"
+                step="0.01"
+                name="quantity"
+                min="0.01"
+                value="1"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Unit:</label>
+              <select name="unit" id="unitSelect">
+                <option value="pcs">pieces</option>
+                <option value="g">grams</option>
+                <option value="kg">kilograms</option>
+                <option value="ml">milliliters</option>
+                <option value="l">liters</option>
+                <option value="oz">ounces</option>
+                <option value="lbs">pounds</option>
+                <option value="custom">Custom...</option>
+              </select>
+              <input
+                type="text"
+                name="custom_unit"
+                id="customUnitInput"
+                placeholder="Enter custom unit"
+                style="display: none; margin-top: 8px"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Storage:</label>
+              <select name="storage_type">
+                <option value="pantry">Pantry</option>
+                <option value="fridge">Refrigerator</option>
+                <option value="freezer">Freezer</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Category:</label>
+              <select name="category">
+                <option value="Other">Other</option>
+                <option value="Produce">Produce</option>
+                <option value="Meat">Meat</option>
+                <option value="Dairy">Dairy</option>
+                <option value="Grains">Grains</option>
+                <option value="Canned Goods">Canned Goods</option>
+                <option value="Frozen Foods">Frozen Foods</option>
+                <option value="Beverages">Beverages</option>
+                <option value="Snacks">Snacks</option>
+                <option value="Condiments">Condiments</option>
+                <option value="Spices">Spices</option>
+                <option value="Bread">Bread</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Expiration Date (optional):</label>
+            <input type="date" name="expiration_date" />
+            <label class="ai-predict">
+              <input type="checkbox" name="ai_predict_expiry" />
+              Use AI prediction if no date and/or category provided
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label>Tags (optional):</label>
+            <div class="tag-input-container">
+              <div class="selected-tags" id="selectedTags"></div>
+              <div class="tag-input-row">
+                <input
+                  type="text"
+                  id="tagInput"
+                  placeholder="Type to add or search tags..."
+                  autocomplete="off"
+                />
+                <button type="button" id="addTagBtn" class="btn-tag">
+                  Add
+                </button>
+              </div>
+              <div class="tag-suggestions" id="tagSuggestions"></div>
+            </div>
+            <input type="hidden" name="tag_ids" id="tagIdsHidden" />
+          </div>
+
+          <div class="form-group">
+            <label>Notes (optional):</label>
+            <textarea name="notes" rows="2" maxlength="50" style="resize: none;" placeholder="Add a brief note (max 50 characters)"></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary close-btn">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary">Add Item</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div id="editItemModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Edit Pantry Item</h3>
+          <button class="close-btn">&times;</button>
+        </div>
+
+        <form id="editItemForm">
+          <input type="hidden" id="editItemId" name="item_id" />
+
+          <div class="form-group">
+            <label>Item Name:</label>
+            <input type="text" id="editItemName" name="item_name" required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Quantity:</label>
+              <input
+                type="number"
+                step="0.01"
+                id="editQuantity"
+                name="quantity"
+                min="0.01"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Unit:</label>
+              <select id="editUnit" name="unit">
+                <option value="pcs">pieces</option>
+                <option value="g">grams</option>
+                <option value="kg">kilograms</option>
+                <option value="ml">milliliters</option>
+                <option value="l">liters</option>
+                <option value="oz">ounces</option>
+                <option value="lbs">pounds</option>
+                <option value="custom">Custom...</option>
+              </select>
+              <input
+                type="text"
+                name="custom_unit"
+                id="editCustomUnitInput"
+                placeholder="Enter custom unit"
+                style="display: none; margin-top: 8px"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Storage:</label>
+              <select id="editStorageType" name="storage_type">
+                <option value="pantry">Pantry</option>
+                <option value="fridge">Refrigerator</option>
+                <option value="freezer">Freezer</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Category:</label>
+              <select id="editCategory" name="category">
+                <option value="Other">Other</option>
+                <option value="Produce">Produce</option>
+                <option value="Meat">Meat</option>
+                <option value="Dairy">Dairy</option>
+                <option value="Grains">Grains</option>
+                <option value="Canned Goods">Canned Goods</option>
+                <option value="Frozen Foods">Frozen Foods</option>
+                <option value="Beverages">Beverages</option>
+                <option value="Snacks">Snacks</option>
+                <option value="Condiments">Condiments</option>
+                <option value="Spices">Spices</option>
+                <option value="Bread">Bread</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Expiration Date (optional):</label>
+            <input type="date" id="editExpirationDate" name="expiration_date" />
+            <label class="ai-predict">
+              <input
+                type="checkbox"
+                id="editAiPredict"
+                name="ai_predict_expiry"
+              />
+              Use AI prediction if no date and/or category provided
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label>Tags (optional):</label>
+            <div class="tag-input-container">
+              <div class="selected-tags" id="editSelectedTags"></div>
+              <div class="tag-input-row">
+                <input
+                  type="text"
+                  id="editTagInput"
+                  placeholder="Type to add or search tags..."
+                  autocomplete="off"
+                />
+                <button type="button" id="editAddTagBtn" class="btn-tag">
+                  Add
+                </button>
+              </div>
+              <div class="tag-suggestions" id="editTagSuggestions"></div>
+            </div>
+            <input type="hidden" name="tag_ids" id="editTagIdsHidden" />
+          </div>
+
+          <div class="form-group">
+            <label>Notes (optional):</label>
+            <textarea id="editNotes" name="notes" rows="2" maxlength="50" style="resize: none;" placeholder="Add a brief note (max 50 characters)"></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary close-btn">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary">Update Item</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% include "partials/_footer.html" %}
+
+    <script src="{{ url_for('static', filename='js/pantry.js') }}"></script>
+  </body>
+</html>
