@@ -98,7 +98,7 @@ Future improvements: CI/CD pipeline, caching layer, and mobile-optimized UI.
 ## 📸 Screenshots
 
 ### Pantry
-![Pantry Screenshot](src/static/images/docs/pantry.png.png)
+![Pantry Screenshot](src/static/images/docs/pantry.png)
 
 ### Meal Plan Calendar
 ![Meal Plan Screenshot](src/static/images/docs/meal_plan.png)
