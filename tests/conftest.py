@@ -188,12 +188,15 @@ def validate_test_environment():
     if not testing_env and flask_env != 'testing':
         print("⚠ Warning: TESTING environment variable not set to 'true'")
     
-    if db_name and not db_name.endswith('_test'):
+    # Critical safety check: ensure we're using test database
+    if db_name != 'hacknyu25_test':
         raise RuntimeError(
-            f"SAFETY CHECK FAILED: Environment DB_NAME '{db_name}' does not end with '_test'. "
-            "Set DB_NAME environment variable to your test database name."
+            f"CRITICAL SAFETY CHECK FAILED: Environment DB_NAME is '{db_name}' but must be 'hacknyu25_test' for tests. "
+            f"Your tests are about to run against the WRONG DATABASE! "
+            f"Set DB_NAME='hacknyu25_test' before running tests."
         )
     
+    print(f"✓ Environment validation passed: DB_NAME={db_name}")
     return True
 
 
@@ -330,34 +333,53 @@ def app():
     # Validate test environment before creating app
     validate_test_environment()
     
-    # Create test app with test configuration
-    test_app = create_app()
-    test_app.config.update({
-        'TESTING': True,
-        'SECRET_KEY': 'test-secret-key',
-        'DB_HOST': 'localhost',
-        'DB_PORT': 8889,
-        'DB_USER': 'root',
-        'DB_PASSWORD': 'root',
-        'DB_NAME': 'hacknyu25_test',
-        'LOG_LEVEL': 'DEBUG',
-        # JWT Configuration for testing
-        'JWT_SECRET_KEY': 'test-jwt-secret-key',
-        'JWT_ACCESS_TOKEN_EXPIRES': 3600,  # 1 hour
-        'JWT_REFRESH_TOKEN_EXPIRES': 2592000,  # 30 days
-        'BCRYPT_ROUNDS': 4  # Lower rounds for faster testing
-    })
+    # Force test database name in environment
+    import os
+    original_db_name = os.environ.get('DB_NAME')
+    os.environ['DB_NAME'] = 'hacknyu25_test'
     
-    with test_app.app_context():
-        # Initialize test database
-        init_test_db()
-        # Populate test data
-        populate_test_data()
-    
-    yield test_app
-    
-    # Cleanup any remaining test connections
-    cleanup_test_connections(test_app)
+    try:
+        # Create test app with test configuration
+        test_app = create_app()
+        test_app.config.update({
+            'TESTING': True,
+            'SECRET_KEY': 'test-secret-key',
+            'DB_HOST': 'localhost',
+            'DB_PORT': 8889,
+            'DB_USER': 'root',
+            'DB_PASSWORD': 'root',
+            'DB_NAME': 'hacknyu25_test',  # Force test database
+            'LOG_LEVEL': 'DEBUG',
+            # JWT Configuration for testing
+            'JWT_SECRET_KEY': 'test-jwt-secret-key',
+            'JWT_ACCESS_TOKEN_EXPIRES': 3600,  # 1 hour
+            'JWT_REFRESH_TOKEN_EXPIRES': 2592000,  # 30 days
+            'BCRYPT_ROUNDS': 4  # Lower rounds for faster testing
+        })
+        
+        # Double-check that we're definitely using test database
+        if test_app.config['DB_NAME'] != 'hacknyu25_test':
+            raise RuntimeError(f"CRITICAL: Test app is not using test database! Current: {test_app.config['DB_NAME']}")
+            
+        print(f"✓ Test app configured to use database: {test_app.config['DB_NAME']}")
+        
+        with test_app.app_context():
+            # Initialize test database
+            init_test_db()
+            # Populate test data
+            populate_test_data()
+        
+        yield test_app
+        
+        # Cleanup any remaining test connections
+        cleanup_test_connections(test_app)
+        
+    finally:
+        # Restore original environment
+        if original_db_name:
+            os.environ['DB_NAME'] = original_db_name
+        elif 'DB_NAME' in os.environ:
+            del os.environ['DB_NAME']
 
 
 @pytest.fixture

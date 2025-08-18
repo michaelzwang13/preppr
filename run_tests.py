@@ -174,7 +174,7 @@ Examples:
         cmd.extend(['-m', marker_expr])
     
     # Exclude slow tests unless explicitly requested
-    if not args.ci and 'slow' not in args.category and not args.fast:
+    if not args.ci and args.category and 'slow' not in args.category and not args.fast:
         if '-m' in cmd:
             # Find the marker expression and append to it
             marker_idx = cmd.index('-m') + 1
@@ -224,6 +224,7 @@ Examples:
     # Set up environment for enhanced rollback system
     os.environ['TESTING'] = 'true'
     os.environ['FLASK_ENV'] = 'testing'
+    os.environ['DB_NAME'] = 'hacknyu25_test'  # Force test database
     
     # Run the tests
     print(f"\n🧪 Preppr Test Suite - Enhanced Database Rollback")
@@ -235,8 +236,9 @@ Examples:
         print(f"Category: {args.category}")
         print(f"Coverage: {'enabled' if coverage_enabled else 'disabled'}")
         print(f"Files: {args.file if args.file else 'all test files'}")
-        print(f"Database: hacknyu25_test (automatic rollback enabled)")
+        print(f"Database: {os.environ.get('DB_NAME', 'NOT SET')} (automatic rollback enabled)")
         print(f"Environment: {os.environ.get('FLASK_ENV', 'not set')}")
+        print(f"Testing Mode: {os.environ.get('TESTING', 'not set')}")
         
         success = run_command(cmd, "Running tests with database rollback")
         

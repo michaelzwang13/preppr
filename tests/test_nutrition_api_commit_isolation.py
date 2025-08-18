@@ -56,10 +56,10 @@ class TestNutritionAPICommitIsolation:
         data = json.loads(response.data)
         goals = data['goals']
         
-        # Verify our exact values are there
-        assert goals['daily_calories'] == 2500
-        assert goals['daily_protein'] == 180
-        assert goals['daily_fat'] == 85
+        # Verify our exact values are there (handling decimal format from DB)
+        assert float(goals['daily_calories']) == 2500
+        assert float(goals['daily_protein']) == 180
+        assert float(goals['daily_fat']) == 85
         assert goals['goal_type'] == 'custom'
         assert goals['activity_level'] == 'very_active'
         
@@ -82,9 +82,9 @@ class TestNutritionAPICommitIsolation:
         goals = data['goals']
         
         # Should get default values, not the committed values from previous test
-        assert goals['daily_calories'] == 2000  # Default, not 2500 from previous test
-        assert goals['daily_protein'] == 150   # Default, not 180 from previous test
-        assert goals['daily_fat'] == 70        # Default, not 85 from previous test
+        assert float(goals['daily_calories']) == 2000  # Default, not 2500 from previous test
+        assert float(goals['daily_protein']) == 150   # Default, not 180 from previous test
+        assert float(goals['daily_fat']) == 70        # Default, not 85 from previous test
         
         # These fields shouldn't exist because user doesn't exist
         assert 'goal_type' not in goals or goals.get('goal_type') != 'custom'
@@ -143,7 +143,7 @@ class TestNutritionAPICommitIsolation:
         response = client.get('/api/nutrition/goals')
         data = json.loads(response.data)
         goals = data['goals']
-        assert goals['daily_calories'] == 2100
+        assert float(goals['daily_calories']) == 2100
         
         print("✓ Detailed nutrition API database operations work correctly")
         print(f"✓ API and test connections properly isolated")
@@ -175,7 +175,7 @@ class TestNutritionAPICommitIsolation:
         # Verify first update
         response = client.get('/api/nutrition/goals')
         goals = json.loads(response.data)['goals']
-        assert goals['daily_calories'] == 1800
+        assert float(goals['daily_calories']) == 1800
         
         # Second update
         data_2 = {
@@ -195,8 +195,8 @@ class TestNutritionAPICommitIsolation:
         # Verify second update overwrote first
         response = client.get('/api/nutrition/goals')
         goals = json.loads(response.data)['goals']
-        assert goals['daily_calories'] == 2200  # Latest value
-        assert goals['daily_protein'] == 170    # Latest value
+        assert float(goals['daily_calories']) == 2200  # Latest value
+        assert float(goals['daily_protein']) == 170    # Latest value
         
         print("✓ Multiple nutrition API commits work correctly in same test")
     
@@ -227,6 +227,6 @@ class TestNutritionAPICommitIsolation:
         # Verify no invalid data was saved
         response = client.get('/api/nutrition/goals')
         goals = json.loads(response.data)['goals']
-        assert goals['daily_calories'] == 2000  # Default, not invalid value
+        assert float(goals['daily_calories']) == 2000  # Default, not invalid value
         
         print("✓ Nutrition API error handling works correctly with connection isolation")
