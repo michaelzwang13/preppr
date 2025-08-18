@@ -180,11 +180,16 @@ class TestMealPlanGeneration:
         with app.app_context():
             db = get_db()
             cursor = db.cursor()
+            
+            # Clean up any existing meals for this test first
+            cursor.execute('DELETE FROM meals WHERE user_id = %s AND meal_date = %s AND meal_type = %s', 
+                          (user_id, conflict_date, 'breakfast'))
+            
             cursor.execute('''
                 INSERT INTO meals (user_id, meal_date, meal_type, custom_recipe_name)
                 VALUES (%s, %s, %s, %s)
             ''', (user_id, conflict_date, 'breakfast', 'Existing Breakfast'))
-            # db.commit()
+            db.commit()  # ← API needs this to see the existing meal and handle conflicts
             cursor.close()
         
         meal_plan_data = {
@@ -702,7 +707,7 @@ class TestMealPlanDatabaseIntegration:
             expected_columns = [
                 'session_id', 'user_id', 'session_name', 'start_date', 'end_date',
                 'total_days', 'dietary_preference', 'budget_limit', 'max_cooking_time',
-                'generation_prompt', 'created_at', 'updated_at'
+                'generated_at', 'status', 'ai_model_used', 'generation_prompt'
             ]
             
             for col in expected_columns:

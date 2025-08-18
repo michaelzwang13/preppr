@@ -7,6 +7,7 @@ import pytest
 import tempfile
 import os
 import json
+import pymysql
 from datetime import datetime, timedelta
 from src import create_app
 from src.database import get_db
@@ -36,7 +37,7 @@ def create_api_database_connection(app_config):
         port=app_config["DB_PORT"],
         user=app_config["DB_USER"],
         password=app_config["DB_PASSWORD"],
-        db=app_config["DB_NAME"],
+        db=app_config.get("DB_NAME_TEST", "hacknyu25_test"),
         charset="utf8mb4",
         cursorclass=pymysql.cursors.DictCursor,
         autocommit=False  # API can control its own commits
@@ -178,12 +179,16 @@ def validate_test_environment():
     Validate that we're running in a safe test environment.
     Checks environment variables, database naming, and other safety measures.
     """
+    # Load .env file to get DB_NAME_TEST
+    from dotenv import load_dotenv
+    load_dotenv()
+    
     # Check if we're explicitly in test mode
     testing_env = os.getenv('TESTING', 'false').lower() == 'true'
     flask_env = os.getenv('FLASK_ENV', '').lower()
     
-    # Check database name from environment
-    db_name = os.getenv('DB_NAME', '')
+    # Check database name from environment - prefer DB_NAME_TEST, fallback to DB_NAME
+    db_name = os.getenv('DB_NAME_TEST', os.getenv('DB_NAME', ''))
     
     if not testing_env and flask_env != 'testing':
         print("⚠ Warning: TESTING environment variable not set to 'true'")
@@ -335,8 +340,14 @@ def app():
     
     # Force test database name in environment
     import os
+    from dotenv import load_dotenv
+    
+    # Reload .env to get DB_NAME_TEST
+    load_dotenv()
+    
     original_db_name = os.environ.get('DB_NAME')
-    os.environ['DB_NAME'] = 'hacknyu25_test'
+    test_db_name = os.environ.get('DB_NAME_TEST', 'hacknyu25_test')
+    os.environ['DB_NAME'] = test_db_name
     
     try:
         # Create test app with test configuration
@@ -348,7 +359,8 @@ def app():
             'DB_PORT': 8889,
             'DB_USER': 'root',
             'DB_PASSWORD': 'root',
-            'DB_NAME': 'hacknyu25_test',  # Force test database
+            'DB_NAME': test_db_name,  # Use DB_NAME_TEST from .env
+            'DB_NAME_TEST': test_db_name,  # Also set DB_NAME_TEST for API connections
             'LOG_LEVEL': 'DEBUG',
             # JWT Configuration for testing
             'JWT_SECRET_KEY': 'test-jwt-secret-key',
@@ -358,7 +370,7 @@ def app():
         })
         
         # Double-check that we're definitely using test database
-        if test_app.config['DB_NAME'] != 'hacknyu25_test':
+        if not test_app.config['DB_NAME'].endswith('_test'):
             raise RuntimeError(f"CRITICAL: Test app is not using test database! Current: {test_app.config['DB_NAME']}")
             
         print(f"✓ Test app configured to use database: {test_app.config['DB_NAME']}")
@@ -671,12 +683,24 @@ def logged_in_user(client, auth):
 def premium_user(client, auth, app):
     """Create a premium user for testing premium features."""
     user_id = 'premium_user'
+    
+    # Register the user using the normal auth system
     auth.register(user_id=user_id, email='premium@example.com')
     
-    with app.app_context():
-        # Set user as premium
-        db = get_db()
-        cursor = db.cursor()
+    # Use an API connection to upgrade to premium AND set session (this will persist across the rollback system)
+    api_connection = pymysql.connect(
+        host=app.config["DB_HOST"],
+        port=app.config["DB_PORT"],
+        user=app.config["DB_USER"],
+        password=app.config["DB_PASSWORD"],
+        db=app.config["DB_NAME"],
+        charset="utf8mb4",
+        cursorclass=pymysql.cursors.DictCursor,
+        autocommit=True  # Auto-commit to ensure changes persist
+    )
+    
+    try:
+        cursor = api_connection.cursor()
         end_date = datetime.now() + timedelta(days=365)
         cursor.execute('''
             UPDATE user_account 
@@ -686,10 +710,14 @@ def premium_user(client, auth, app):
                 subscription_end_date = %s
             WHERE user_ID = %s
         ''', (end_date, user_id))
-        db.commit()
         cursor.close()
+    finally:
+        api_connection.close()
     
-    auth.login(user_id=user_id)
+    # Set session manually to ensure it persists for the test
+    with client.session_transaction() as sess:
+        sess['user_ID'] = user_id
+    
     return user_id
 
 

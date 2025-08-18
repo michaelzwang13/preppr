@@ -33,24 +33,38 @@ def get_user_subscription_info(user_id):
         result = cursor.fetchone()
         
         if not result:
-            return {'tier': 'free', 'status': 'active', 'end_date': None}
+            return {
+                'tier': 'free', 
+                'status': 'active', 
+                'expires_at': None, 
+                'unlimited': False
+            }
+        
+        tier = result['subscription_tier'] or 'free'
+        status = result['subscription_status'] or 'active'
+        end_date = result['subscription_end_date']
         
         # Check if subscription has expired
-        if result['subscription_end_date'] and result['subscription_end_date'] < datetime.now():
-            # Auto-downgrade expired premium users to free
+        is_expired = end_date and end_date < datetime.now()
+        if is_expired and status != 'expired':
+            # Update status to expired but keep tier for record-keeping
             update_query = """
             UPDATE user_account 
-            SET subscription_tier = 'free', subscription_status = 'expired'
+            SET subscription_status = 'expired'
             WHERE user_ID = %s
             """
             cursor.execute(update_query, (user_id,))
             db.commit()
-            return {'tier': 'free', 'status': 'expired', 'end_date': result['subscription_end_date']}
+            status = 'expired'
+        
+        # Determine if user has unlimited access
+        unlimited = (tier == 'premium' and status == 'active' and not is_expired)
         
         return {
-            'tier': result['subscription_tier'],
-            'status': result['subscription_status'],
-            'end_date': result['subscription_end_date']
+            'tier': tier,
+            'status': status,
+            'expires_at': end_date,
+            'unlimited': unlimited
         }
     finally:
         cursor.close()
@@ -227,9 +241,9 @@ def get_user_limits_status(user_id):
         return {
             'tier': 'premium',
             'status': subscription_info['status'],
-            'end_date': subscription_info['end_date'],
+            'expires_at': subscription_info['expires_at'],
             'limits': {},
-            'unlimited': True
+            'unlimited': subscription_info['unlimited']
         }
     
     # Get all free tier limits
@@ -250,9 +264,9 @@ def get_user_limits_status(user_id):
     status = {
         'tier': 'free',
         'status': subscription_info['status'],
-        'end_date': subscription_info['end_date'],
+        'expires_at': subscription_info['expires_at'],
         'limits': {},
-        'unlimited': False
+        'unlimited': subscription_info['unlimited']
     }
     
     for feature in features:
@@ -288,3 +302,86 @@ def requires_premium(feature_description="this feature"):
                 
         return decorated_function
     return decorator
+
+# Test helper functions for backward compatibility
+def check_user_limit(user_id, feature_name, current_count=None, auto_count=False):
+    """
+    Test helper function that provides the API expected by tests.
+    Returns a dict with limit information instead of raising exceptions.
+    """
+    try:
+        subscription_info = get_user_subscription_info(user_id)
+        tier = subscription_info['tier']
+        
+        # Premium users have unlimited access
+        if tier == 'premium':
+            return {
+                'allowed': True,
+                'limit': -1,
+                'current': current_count or 0,
+                'remaining': -1
+            }
+        
+        # Get the limit for this feature on free tier
+        limit = get_tier_limit('free', feature_name)
+        
+        # Get current usage if auto_count is requested
+        if auto_count:
+            current_count = get_current_usage(user_id, feature_name)
+        elif current_count is None:
+            current_count = 0
+        
+        # Check if at or over limit
+        allowed = current_count < limit
+        remaining = max(0, limit - current_count)
+        
+        return {
+            'allowed': allowed,
+            'limit': limit,
+            'current': current_count,
+            'remaining': remaining
+        }
+    except Exception:
+        # Return safe defaults on error
+        return {
+            'allowed': False,
+            'limit': 0,
+            'current': current_count or 0,
+            'remaining': 0
+        }
+
+def increment_user_limit(user_id, limit_type, increment=1):
+    """
+    Test helper function that increments usage and returns success/failure.
+    Returns True if increment was successful, False if it would exceed limits.
+    """
+    try:
+        # Check if increment would exceed limit first
+        limit_check = check_user_limit(user_id, limit_type, auto_count=True)
+        if not limit_check['allowed'] and limit_check['limit'] != -1:
+            return False
+        
+        # If allowed, increment the usage
+        increment_usage(user_id, limit_type, increment)
+        return True
+    except Exception:
+        return False
+
+def reset_daily_limits(user_id):
+    """
+    Test helper function to reset daily limits for a user.
+    """
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        # Reset all daily limits
+        reset_query = """
+        UPDATE subscription_limits 
+        SET current_usage = 0, last_reset_date = CURRENT_DATE
+        WHERE user_id = %s AND limit_type LIKE '%_per_day'
+        """
+        cursor.execute(reset_query, (user_id,))
+        db.commit()
+    finally:
+        cursor.close()

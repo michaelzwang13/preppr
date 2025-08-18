@@ -222,9 +222,15 @@ Examples:
         cmd.append('--collect-only')
     
     # Set up environment for enhanced rollback system
+    from dotenv import load_dotenv
+    load_dotenv()  # Load .env to get DB_NAME_TEST
+    
     os.environ['TESTING'] = 'true'
     os.environ['FLASK_ENV'] = 'testing'
-    os.environ['DB_NAME'] = 'hacknyu25_test'  # Force test database
+    
+    # Use DB_NAME_TEST from .env file, fallback to hardcoded value
+    test_db_name = os.getenv('DB_NAME_TEST', 'hacknyu25_test')
+    os.environ['DB_NAME'] = test_db_name
     
     # Run the tests
     print(f"\n🧪 Preppr Test Suite - Enhanced Database Rollback")

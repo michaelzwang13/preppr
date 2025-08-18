@@ -68,7 +68,7 @@ def test_can_write_to_test_database(client, auth):
 
 
 @pytest.mark.integration
-def test_environment_isolation_from_production():
+def test_environment_isolation_from_production(app):
     """Test that our test environment is properly isolated."""
     
     # Check that we're not accidentally inheriting production settings

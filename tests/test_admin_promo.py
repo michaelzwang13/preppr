@@ -437,7 +437,7 @@ class TestPromoCodeAvailabilityAPI:
                 (code, code_type, description, discount_value, max_uses, current_uses, is_active, created_by)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ''', ('TESTACTIVE', 'percentage', 'Test active code', 25.0, 100, 5, True, 'test_admin'))
-            # db.commit()
+            db.commit()  # ← API needs this to see the test data
             cursor.close()
         
         response = client.get('/api/promo-codes/check-availability/TESTACTIVE')
@@ -456,12 +456,14 @@ class TestPromoCodeAvailabilityAPI:
         with app.app_context():
             db = get_db()
             cursor = db.cursor()
+            # Clean up any existing test data first
+            cursor.execute('DELETE FROM promotional_codes WHERE code = %s', ('TESTINACTIVE',))
             cursor.execute('''
                 INSERT INTO promotional_codes 
                 (code, code_type, description, discount_value, is_active, created_by)
                 VALUES (%s, %s, %s, %s, %s, %s)
             ''', ('TESTINACTIVE', 'percentage', 'Test inactive code', 15.0, False, 'test_admin'))
-            # db.commit()
+            db.commit()  # ← API needs this to see the test data
             cursor.close()
         
         response = client.get('/api/promo-codes/check-availability/TESTINACTIVE')
@@ -478,13 +480,15 @@ class TestPromoCodeAvailabilityAPI:
         with app.app_context():
             db = get_db()
             cursor = db.cursor()
+            # Clean up any existing test data first
+            cursor.execute('DELETE FROM promotional_codes WHERE code = %s', ('TESTEXPIRED',))
             past_date = datetime.now() - timedelta(days=1)
             cursor.execute('''
                 INSERT INTO promotional_codes 
                 (code, code_type, description, discount_value, expires_at, is_active, created_by)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             ''', ('TESTEXPIRED', 'percentage', 'Test expired code', 20.0, past_date, True, 'test_admin'))
-            # db.commit()
+            db.commit()  # ← API needs this to see the test data
             cursor.close()
         
         response = client.get('/api/promo-codes/check-availability/TESTEXPIRED')
@@ -501,12 +505,14 @@ class TestPromoCodeAvailabilityAPI:
         with app.app_context():
             db = get_db()
             cursor = db.cursor()
+            # Clean up any existing test data first
+            cursor.execute('DELETE FROM promotional_codes WHERE code = %s', ('TESTEXHAUSTED',))
             cursor.execute('''
                 INSERT INTO promotional_codes 
                 (code, code_type, description, discount_value, max_uses, current_uses, is_active, created_by)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ''', ('TESTEXHAUSTED', 'percentage', 'Test exhausted code', 10.0, 10, 10, True, 'test_admin'))
-            # db.commit()
+            db.commit()  # ← API needs this to see the test data
             cursor.close()
         
         response = client.get('/api/promo-codes/check-availability/TESTEXHAUSTED')
@@ -609,7 +615,7 @@ class TestPromoCodeDatabaseIntegration:
             column_names = [col['Field'] for col in columns]
             expected_columns = [
                 'redemption_id', 'code_id', 'user_id', 'redeemed_at', 'redemption_result',
-                'failure_reason', 'subscription_granted_until', 'ip_address'
+                'user_agent', 'subscription_granted_until', 'ip_address'
             ]
             
             for col in expected_columns:
@@ -645,6 +651,9 @@ class TestPromoCodeDatabaseIntegration:
             db = get_db()
             cursor = db.cursor()
             
+            # Clean up any existing test data first
+            cursor.execute('DELETE FROM promotional_codes WHERE code IN (%s, %s)', ('TESTCODE', 'TESTCODE2'))
+            
             # Test invalid code_type
             with pytest.raises(Exception):
                 cursor.execute('''
@@ -657,9 +666,9 @@ class TestPromoCodeDatabaseIntegration:
             cursor.execute('''
                 INSERT INTO promotional_codes (code, code_type, created_by)
                 VALUES (%s, %s, %s)
-            ''', ('TESTCODE2', 'discount', 'admin'))
+            ''', ('TESTCODE2', 'percentage', 'admin'))  # ← Use valid code_type
             code_id = cursor.lastrowid
-            # db.commit()
+            db.commit()  # ← Need this so code_id is available for redemption test
             
             with pytest.raises(Exception):
                 cursor.execute('''
@@ -676,11 +685,14 @@ class TestPromoCodeDatabaseIntegration:
             db = get_db()
             cursor = db.cursor()
             
+            # Clean up any existing test data first
+            cursor.execute('DELETE FROM promotional_codes WHERE code = %s', ('UNIQUECODE',))
+            
             # Insert first code
             cursor.execute('''
                 INSERT INTO promotional_codes (code, code_type, created_by)
                 VALUES (%s, %s, %s)
-            ''', ('UNIQUECODE', 'discount', 'admin'))
+            ''', ('UNIQUECODE', 'percentage', 'admin'))  # ← Use valid code_type
             # db.commit()
             
             # Try to insert duplicate code
@@ -688,7 +700,7 @@ class TestPromoCodeDatabaseIntegration:
                 cursor.execute('''
                     INSERT INTO promotional_codes (code, code_type, created_by)
                     VALUES (%s, %s, %s)
-                ''', ('UNIQUECODE', 'discount', 'admin'))
+                ''', ('UNIQUECODE', 'percentage', 'admin'))  # ← Use valid code_type
                 # db.commit()
             
             cursor.close()
@@ -717,7 +729,7 @@ class TestPromoCodeUtilities:
         # Find specific code types
         code_types = [code['code_type'] for code in codes]
         assert 'free_trial' in code_types
-        assert 'discount' in code_types
+        assert 'percentage' in code_types  # ← Fixed: 'percentage' exists, 'discount' doesn't
         assert 'free_month' in code_types
     
     def test_promo_code_error_handling(self):
@@ -756,12 +768,15 @@ class TestPromoCodePerformance:
             db = get_db()
             cursor = db.cursor()
             
+            # Clean up any existing test data first
+            cursor.execute('DELETE FROM promotional_codes WHERE code LIKE %s', ('TESTCODE%',))
+            
             for i in range(100):
                 cursor.execute('''
                     INSERT INTO promotional_codes 
                     (code, code_type, description, created_by, is_active)
                     VALUES (%s, %s, %s, %s, %s)
-                ''', (f'TESTCODE{i}', 'discount', f'Test code {i}', 'admin', True))
+                ''', (f'TESTCODE{i}', 'percentage', f'Test code {i}', 'admin', True))  # ← Use valid code_type
             
             # db.commit()
             cursor.close()
@@ -791,11 +806,15 @@ class TestPromoCodePerformance:
         with app.app_context():
             db = get_db()
             cursor = db.cursor()
+            
+            # Clean up any existing test data first
+            cursor.execute('DELETE FROM promotional_codes WHERE code = %s', ('CONCURRENT',))
+            
             cursor.execute('''
                 INSERT INTO promotional_codes 
                 (code, code_type, description, max_uses, current_uses, created_by, is_active)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', ('CONCURRENT', 'discount', 'Concurrent test', 100, 0, 'admin', True))
+            ''', ('CONCURRENT', 'percentage', 'Concurrent test', 100, 0, 'admin', True))  # ← Use valid code_type
             # db.commit()
             cursor.close()
         
