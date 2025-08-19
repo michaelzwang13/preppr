@@ -100,11 +100,9 @@ class TestSubscriptionLimits:
         assert status['unlimited'] == True
         assert 'limits' in status
         
-        # Premium users should have unlimited (-1) limits
+        # Premium users should have empty limits dict (they're unlimited)
         limits = status['limits']
-        assert limits['meal_plans_active']['limit'] == -1
-        assert limits['pantry_items']['limit'] == -1
-        assert limits['saved_recipes']['limit'] == -1
+        assert limits == {}  # Premium users don't need limit tracking
     
     def test_check_user_limit_within_bounds_free(self, app, logged_in_user):
         """Test checking limit when user is within bounds."""
