@@ -625,7 +625,7 @@ class AuthActions:
             'last_name': last_name
         })
     
-    def login(self, user_id='test_user', password='demo123'):
+    def login(self, user_id='test_user', password='testpass123'):
         """Login a user."""
         return self._client.post('/login', data={
             'user_ID': user_id,

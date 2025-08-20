@@ -284,14 +284,41 @@ class TestMealRetrievalAPI:
         test_date = datetime.now().date() + timedelta(days=1)
         
         with app.app_context():
-            db = get_db()
-            cursor = db.cursor()
-            cursor.execute('''
-                INSERT INTO meals (user_id, meal_date, meal_type, custom_recipe_name, is_completed)
-                VALUES (%s, %s, %s, %s, %s)
-            ''', (user_id, test_date, 'breakfast', 'Test Breakfast', False))
-            # db.commit()
-            cursor.close()
+            from flask import current_app
+            from tests.conftest import get_test_database_manager
+            
+            # Clean up existing meals and add test meal using API connection
+            manager = get_test_database_manager(current_app.config)
+            api_conn = manager.get_api_connection() if manager else None
+            
+            if api_conn:
+                cursor = api_conn.cursor()
+                # Clean up existing meals for this user and date first
+                cursor.execute('DELETE FROM meals WHERE user_id = %s AND meal_date = %s AND meal_type = %s', 
+                              (user_id, test_date, 'breakfast'))
+                
+                # Add test meal
+                cursor.execute('''
+                    INSERT INTO meals (user_id, meal_date, meal_type, custom_recipe_name, is_completed)
+                    VALUES (%s, %s, %s, %s, %s)
+                ''', (user_id, test_date, 'breakfast', 'Test Breakfast', False))
+                api_conn.commit()  # API connection commits
+                cursor.close()
+            else:
+                # Fallback to regular connection
+                db = get_db()
+                cursor = db.cursor()
+                # Clean up existing meals for this user and date first
+                cursor.execute('DELETE FROM meals WHERE user_id = %s AND meal_date = %s AND meal_type = %s', 
+                              (user_id, test_date, 'breakfast'))
+                
+                # Add test meal
+                cursor.execute('''
+                    INSERT INTO meals (user_id, meal_date, meal_type, custom_recipe_name, is_completed)
+                    VALUES (%s, %s, %s, %s, %s)
+                ''', (user_id, test_date, 'breakfast', 'Test Breakfast', False))
+                db.commit()  # Regular commit as fallback
+                cursor.close()
         
         start_date = test_date.strftime('%Y-%m-%d')
         end_date = test_date.strftime('%Y-%m-%d')

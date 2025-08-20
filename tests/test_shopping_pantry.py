@@ -24,8 +24,32 @@ class TestPantryItemsAPI:
         assert data['success'] == False
         assert 'Not authenticated' in data['message']
     
-    def test_get_pantry_items_empty(self, client, logged_in_user):
+    def test_get_pantry_items_empty(self, client, logged_in_user, app):
         """Test GET pantry items when pantry is empty."""
+        user_id = logged_in_user
+        
+        # Clean up any existing pantry items first
+        with app.app_context():
+            from flask import current_app
+            from tests.conftest import get_test_database_manager
+            
+            # Use API connection to clean up so API can see the changes
+            manager = get_test_database_manager(current_app.config)
+            api_conn = manager.get_api_connection() if manager else None
+            
+            if api_conn:
+                cursor = api_conn.cursor()
+                cursor.execute('DELETE FROM pantry_items WHERE user_id = %s', (user_id,))
+                api_conn.commit()
+                cursor.close()
+            else:
+                # Fallback to regular connection
+                db = get_db()
+                cursor = db.cursor()
+                cursor.execute('DELETE FROM pantry_items WHERE user_id = %s', (user_id,))
+                db.commit()
+                cursor.close()
+        
         response = client.get('/api/pantry/items')
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -40,20 +64,47 @@ class TestPantryItemsAPI:
         
         # Add sample pantry items
         with app.app_context():
-            db = get_db()
-            cursor = db.cursor()
+            from flask import current_app
+            from tests.conftest import get_test_database_manager
             
-            for item in sample_pantry_items:
-                expiry_date = datetime.now().date() + timedelta(days=item['days_to_expire'])
-                cursor.execute('''
-                    INSERT INTO pantry_items 
-                    (user_id, item_name, quantity, unit, category, storage_type, expiration_date)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ''', (user_id, item['name'], item['quantity'], item['unit'], 
-                     item['category'], item['storage_type'], expiry_date))
+            # Clean up existing items and add sample items using API connection
+            manager = get_test_database_manager(current_app.config)
+            api_conn = manager.get_api_connection() if manager else None
             
-            # db.commit()
-            cursor.close()
+            if api_conn:
+                cursor = api_conn.cursor()
+                # Clean up existing items first
+                cursor.execute('DELETE FROM pantry_items WHERE user_id = %s', (user_id,))
+                
+                # Add sample items
+                for item in sample_pantry_items:
+                    expiry_date = datetime.now().date() + timedelta(days=item['days_to_expire'])
+                    cursor.execute('''
+                        INSERT INTO pantry_items 
+                        (user_id, item_name, quantity, unit, category, storage_type, expiration_date)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ''', (user_id, item['name'], item['quantity'], item['unit'], 
+                         item['category'], item['storage_type'], expiry_date))
+                api_conn.commit()  # API connection commits
+                cursor.close()
+            else:
+                # Fallback to regular connection
+                db = get_db()
+                cursor = db.cursor()
+                # Clean up existing items first
+                cursor.execute('DELETE FROM pantry_items WHERE user_id = %s', (user_id,))
+                
+                # Add sample items
+                for item in sample_pantry_items:
+                    expiry_date = datetime.now().date() + timedelta(days=item['days_to_expire'])
+                    cursor.execute('''
+                        INSERT INTO pantry_items 
+                        (user_id, item_name, quantity, unit, category, storage_type, expiration_date)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ''', (user_id, item['name'], item['quantity'], item['unit'], 
+                         item['category'], item['storage_type'], expiry_date))
+                db.commit()  # Regular commit as fallback
+                cursor.close()
         
         response = client.get('/api/pantry/items')
         assert response.status_code == 200
@@ -73,20 +124,47 @@ class TestPantryItemsAPI:
         
         # Add sample pantry items
         with app.app_context():
-            db = get_db()
-            cursor = db.cursor()
+            from flask import current_app
+            from tests.conftest import get_test_database_manager
             
-            for item in sample_pantry_items:
-                expiry_date = datetime.now().date() + timedelta(days=item['days_to_expire'])
-                cursor.execute('''
-                    INSERT INTO pantry_items 
-                    (user_id, item_name, quantity, unit, category, storage_type, expiration_date)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ''', (user_id, item['name'], item['quantity'], item['unit'], 
-                     item['category'], item['storage_type'], expiry_date))
+            # Clean up existing items and add sample items using API connection
+            manager = get_test_database_manager(current_app.config)
+            api_conn = manager.get_api_connection() if manager else None
             
-            # db.commit()
-            cursor.close()
+            if api_conn:
+                cursor = api_conn.cursor()
+                # Clean up existing items first
+                cursor.execute('DELETE FROM pantry_items WHERE user_id = %s', (user_id,))
+                
+                # Add sample items
+                for item in sample_pantry_items:
+                    expiry_date = datetime.now().date() + timedelta(days=item['days_to_expire'])
+                    cursor.execute('''
+                        INSERT INTO pantry_items 
+                        (user_id, item_name, quantity, unit, category, storage_type, expiration_date)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ''', (user_id, item['name'], item['quantity'], item['unit'], 
+                         item['category'], item['storage_type'], expiry_date))
+                api_conn.commit()  # API connection commits
+                cursor.close()
+            else:
+                # Fallback to regular connection
+                db = get_db()
+                cursor = db.cursor()
+                # Clean up existing items first
+                cursor.execute('DELETE FROM pantry_items WHERE user_id = %s', (user_id,))
+                
+                # Add sample items
+                for item in sample_pantry_items:
+                    expiry_date = datetime.now().date() + timedelta(days=item['days_to_expire'])
+                    cursor.execute('''
+                        INSERT INTO pantry_items 
+                        (user_id, item_name, quantity, unit, category, storage_type, expiration_date)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ''', (user_id, item['name'], item['quantity'], item['unit'], 
+                         item['category'], item['storage_type'], expiry_date))
+                db.commit()  # Regular commit as fallback
+                cursor.close()
         
         # Test storage filter
         response = client.get('/api/pantry/items?storage_type=fridge')
@@ -106,8 +184,12 @@ class TestPantryItemsAPI:
         user_id = logged_in_user
         
         with app.app_context():
-            db = get_db()
-            cursor = db.cursor()
+            from flask import current_app
+            from tests.conftest import get_test_database_manager
+            
+            # Clean up existing items and add test items using API connection
+            manager = get_test_database_manager(current_app.config)
+            api_conn = manager.get_api_connection() if manager else None
             
             # Create items with different expiry statuses
             items_data = [
@@ -117,14 +199,34 @@ class TestPantryItemsAPI:
                 ('no_expiry_item', None)                                        # No expiry
             ]
             
-            for item_name, expiry_date in items_data:
-                cursor.execute('''
-                    INSERT INTO pantry_items (user_id, item_name, quantity, unit, expiration_date)
-                    VALUES (%s, %s, %s, %s, %s)
-                ''', (user_id, item_name, 1, 'pcs', expiry_date))
-            
-            # db.commit()
-            cursor.close()
+            if api_conn:
+                cursor = api_conn.cursor()
+                # Clean up existing items first
+                cursor.execute('DELETE FROM pantry_items WHERE user_id = %s', (user_id,))
+                
+                # Add test items
+                for item_name, expiry_date in items_data:
+                    cursor.execute('''
+                        INSERT INTO pantry_items (user_id, item_name, quantity, unit, expiration_date)
+                        VALUES (%s, %s, %s, %s, %s)
+                    ''', (user_id, item_name, 1, 'pcs', expiry_date))
+                api_conn.commit()  # API connection commits
+                cursor.close()
+            else:
+                # Fallback to regular connection
+                db = get_db()
+                cursor = db.cursor()
+                # Clean up existing items first
+                cursor.execute('DELETE FROM pantry_items WHERE user_id = %s', (user_id,))
+                
+                # Add test items
+                for item_name, expiry_date in items_data:
+                    cursor.execute('''
+                        INSERT INTO pantry_items (user_id, item_name, quantity, unit, expiration_date)
+                        VALUES (%s, %s, %s, %s, %s)
+                    ''', (user_id, item_name, 1, 'pcs', expiry_date))
+                db.commit()  # Regular commit as fallback
+                cursor.close()
         
         response = client.get('/api/pantry/items')
         data = json.loads(response.data)

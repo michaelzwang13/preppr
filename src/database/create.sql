@@ -850,3 +850,19 @@ CREATE TABLE IF NOT EXISTS user_tip_history (
     INDEX idx_user_shown (user_id, shown_at),
     INDEX idx_shown_date (shown_at)
 );
+
+-- Table to track pantry change notifications for meal plan updates
+CREATE TABLE IF NOT EXISTS pantry_change_notifications (
+    notification_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
+    meal_plan_session_id INT,
+    change_type ENUM('item_added', 'item_deleted', 'item_modified') NOT NULL,
+    affected_item_name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_processed BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES user_account(user_ID) ON DELETE CASCADE,
+    FOREIGN KEY (meal_plan_session_id) REFERENCES meal_plan_sessions(session_id) ON DELETE CASCADE,
+    INDEX idx_user_notifications (user_id, is_processed),
+    INDEX idx_meal_plan_notifications (meal_plan_session_id),
+    INDEX idx_created_date (created_at)
+);
