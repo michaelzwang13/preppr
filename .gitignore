@@ -156,3 +156,6 @@ preppr-mobile/
 
 # shell scripts
 *.sh
+
+# git
+.gitattributes

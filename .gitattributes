@@ -1,7 +1,0 @@
-tests/**                  merge=ours
-run_tests.py              merge=ours
-pytest.ini                merge=ours
-Makefile                  merge=ours
-TEST_ANALYSIS.md          merge=ours
-.coveragerc               merge=ours
-.pre-commit-config.yaml   merge=ours
