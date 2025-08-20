@@ -201,12 +201,16 @@ def register():
             )
             cursor.execute(ins, (user_ID, email_address, hashed_password, first_name, last_name))
             
-            # Set default theme preference to light mode for new users
-            theme_pref_query = """
-                INSERT INTO user_preferences (user_id, preference_key, preference_value, data_type)
-                VALUES (%s, 'theme_preference', 'light', 'string')
-            """
-            cursor.execute(theme_pref_query, (user_ID,))
+            # Try to set default theme preference to light mode for new users
+            try:
+                theme_pref_query = """
+                    INSERT INTO user_preferences (user_id, preference_key, preference_value, data_type)
+                    VALUES (%s, 'theme_preference', 'light', 'string')
+                """
+                cursor.execute(theme_pref_query, (user_ID,))
+            except Exception as theme_error:
+                # Log the error but don't fail registration
+                logger.warning(f"Failed to set default theme preference for user {user_ID}: {theme_error}")
             
             db.commit()
             cursor.close()
@@ -216,6 +220,7 @@ def register():
             return redirect(url_for("shopping.home"))
         except Exception as e:
             cursor.close()
+            logger.error(f"Registration failed for user {user_ID}: {e}")
             error = "Registration failed. Please try again."
             return render_template("register.html", error=error)
 
@@ -610,12 +615,16 @@ def api_register():
         )
         cursor.execute(insert_query, (user_id, email, hashed_password, first_name, last_name))
         
-        # Set default theme preference to light mode for new users
-        theme_pref_query = """
-            INSERT INTO user_preferences (user_id, preference_key, preference_value, data_type)
-            VALUES (%s, 'theme_preference', 'light', 'string')
-        """
-        cursor.execute(theme_pref_query, (user_id,))
+        # Try to set default theme preference to light mode for new users
+        try:
+            theme_pref_query = """
+                INSERT INTO user_preferences (user_id, preference_key, preference_value, data_type)
+                VALUES (%s, 'theme_preference', 'light', 'string')
+            """
+            cursor.execute(theme_pref_query, (user_id,))
+        except Exception as theme_error:
+            # Log the error but don't fail registration
+            logger.warning(f"Failed to set default theme preference for API user {user_id}: {theme_error}")
         
         db.commit()
         cursor.close()

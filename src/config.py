@@ -16,6 +16,7 @@ class Config:
     DB_USER = os.getenv("DB_USER", "root")
     DB_PASSWORD = os.getenv("DB_PASSWORD", "root")
     DB_NAME = os.getenv("DB_NAME", "hacknyu25")
+    DB_NAME_TEST = os.getenv("DB_NAME_TEST", "hacknyu25_test")
 
     # Nutritionix API configuration
     NUTRITIONIX_API_ID = os.getenv("NUTRITIONIX_API_ID")

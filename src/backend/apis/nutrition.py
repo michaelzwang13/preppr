@@ -65,25 +65,25 @@ def get_nutrition_goals():
         response_goals = {}
         
         if goals:
-            # Always include basic accessible fields
-            response_goals["daily_calories"] = goals["daily_calories_goal"]
+            # Always include basic accessible fields (convert to int for consistency)
+            response_goals["daily_calories"] = int(float(goals["daily_calories_goal"]))
             response_goals["calories_type"] = goals["calories_type"]
-            response_goals["daily_protein"] = goals["daily_protein_goal_g"]
+            response_goals["daily_protein"] = int(float(goals["daily_protein_goal_g"]))
             response_goals["protein_type"] = goals["protein_type"]
-            response_goals["daily_fat"] = goals["daily_fat_goal_g"]
+            response_goals["daily_fat"] = int(float(goals["daily_fat_goal_g"]))
             response_goals["fat_type"] = goals["fat_type"]
             
-            # Include premium fields only if accessible
+            # Include premium fields only if accessible (convert to int for consistency)
             if accessible_fields["carbs"]:
-                response_goals["daily_carbs"] = goals["daily_carbs_goal_g"]
+                response_goals["daily_carbs"] = int(float(goals["daily_carbs_goal_g"]))
                 response_goals["carbs_type"] = goals["carbs_type"]
             
             if accessible_fields["fiber"]:
-                response_goals["daily_fiber"] = goals["daily_fiber_goal_g"]
+                response_goals["daily_fiber"] = int(float(goals["daily_fiber_goal_g"]))
                 response_goals["fiber_type"] = goals["fiber_type"]
             
             if accessible_fields["sodium"]:
-                response_goals["daily_sodium"] = goals["daily_sodium_limit_mg"]
+                response_goals["daily_sodium"] = int(float(goals["daily_sodium_limit_mg"]))
                 response_goals["sodium_type"] = goals["sodium_type"]
             
             # Include metadata

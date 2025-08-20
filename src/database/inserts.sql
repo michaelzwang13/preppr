@@ -6,29 +6,29 @@ INSERT INTO user_account (user_ID, email, password, first_name, last_name, timez
 ('user001', 'john.doe@email.com', 'password123', 'John', 'Doe', 'America/New_York'),
 ('user002', 'jane.smith@email.com', 'password123', 'Jane', 'Smith', 'America/Los_Angeles'),
 ('user003', 'mike.wilson@email.com', 'password123', 'Mike', 'Wilson', 'America/Chicago'),
-('demo_user', 'demo@preppr.com', 'demo123', 'Demo', 'User', 'America/New_York');
+('test_user', 'demo@preppr.com', 'demo123', 'Demo', 'User', 'America/New_York');
 
 -- Insert user meal preferences
 INSERT INTO user_meal_preferences (user_id, dietary_restrictions, favorite_cuisines, cooking_skill_level, max_daily_cooking_time, preferred_budget_per_meal) VALUES
 ('user001', '["vegetarian"]', '["Italian", "Mediterranean"]', 'intermediate', 45, 10.00),
 ('user002', '["gluten-free"]', '["Asian", "Mexican"]', 'advanced', 60, 12.00),
 ('user003', NULL, '["American", "BBQ"]', 'beginner', 30, 8.00),
-('demo_user', '["dairy-free"]', '["Italian", "Asian", "Mexican"]', 'intermediate', 50, 15.00);
+('test_user', '["dairy-free"]', '["Italian", "Asian", "Mexican"]', 'intermediate', 50, 15.00);
 
 -- Insert user budget settings
 INSERT INTO user_budget_settings (user_id, monthly_budget, budget_period, alert_threshold) VALUES
 ('user001', 800.00, 'monthly', 75.00),
 ('user002', 1200.00, 'monthly', 80.00),
 ('user003', 600.00, 'monthly', 85.00),
-('demo_user', 1000.00, 'monthly', 80.00);
+('test_user', 1000.00, 'monthly', 80.00);
 
 -- Insert sample pantry tags
 INSERT INTO pantry_tags (user_id, tag_name, tag_color, usage_count) VALUES
-('demo_user', 'Organic', '#10B981', 5),
-('demo_user', 'Sale Item', '#F59E0B', 3),
-('demo_user', 'Bulk Purchase', '#8B5CF6', 2),
-('demo_user', 'Local', '#34D399', 4),
-('demo_user', 'Quick Use', '#EF4444', 6),
+('test_user', 'Organic', '#10B981', 5),
+('test_user', 'Sale Item', '#F59E0B', 3),
+('test_user', 'Bulk Purchase', '#8B5CF6', 2),
+('test_user', 'Local', '#34D399', 4),
+('test_user', 'Quick Use', '#EF4444', 6),
 ('user001', 'Vegetarian', '#10B981', 8),
 ('user001', 'Protein', '#F59E0B', 4),
 ('user002', 'Gluten-Free', '#8B5CF6', 7),
@@ -37,16 +37,16 @@ INSERT INTO pantry_tags (user_id, tag_name, tag_color, usage_count) VALUES
 -- Insert sample pantry items
 INSERT INTO pantry_items (user_id, item_name, quantity, unit, category, storage_type, expiration_date, source_type, notes) VALUES
 -- Demo user pantry
-('demo_user', 'Whole Wheat Bread', 1, 'loaf', 'Bread', 'pantry', DATE_ADD(CURDATE(), INTERVAL 5 DAY), 'manual', 'Freshly baked from local bakery'),
-('demo_user', 'Organic Eggs', 12, 'pcs', 'Dairy', 'fridge', DATE_ADD(CURDATE(), INTERVAL 14 DAY), 'manual', 'Free-range organic'),
-('demo_user', 'Baby Spinach', 5, 'oz', 'Produce', 'fridge', DATE_ADD(CURDATE(), INTERVAL 7 DAY), 'manual', 'Triple washed'),
-('demo_user', 'Chicken Breast', 2, 'lbs', 'Meat', 'fridge', DATE_ADD(CURDATE(), INTERVAL 3 DAY), 'manual', 'Boneless, skinless'),
-('demo_user', 'Brown Rice', 2, 'lbs', 'Grains', 'pantry', DATE_ADD(CURDATE(), INTERVAL 365 DAY), 'manual', 'Long grain'),
-('demo_user', 'Olive Oil', 500, 'ml', 'Oils & Vinegars', 'pantry', DATE_ADD(CURDATE(), INTERVAL 180 DAY), 'manual', 'Extra virgin'),
-('demo_user', 'Canned Tomatoes', 4, 'cans', 'Canned Goods', 'pantry', DATE_ADD(CURDATE(), INTERVAL 730 DAY), 'manual', 'San Marzano style'),
-('demo_user', 'Greek Yogurt', 32, 'oz', 'Dairy', 'fridge', DATE_ADD(CURDATE(), INTERVAL 10 DAY), 'manual', 'Plain, full-fat'),
-('demo_user', 'Bananas', 6, 'pcs', 'Produce', 'pantry', DATE_ADD(CURDATE(), INTERVAL 5 DAY), 'manual', 'Perfect for smoothies'),
-('demo_user', 'Garlic', 1, 'head', 'Produce', 'pantry', DATE_ADD(CURDATE(), INTERVAL 30 DAY), 'manual', 'Fresh bulb'),
+('test_user', 'Whole Wheat Bread', 1, 'loaf', 'Bread', 'pantry', DATE_ADD(CURDATE(), INTERVAL 5 DAY), 'manual', 'Freshly baked from local bakery'),
+('test_user', 'Organic Eggs', 12, 'pcs', 'Dairy', 'fridge', DATE_ADD(CURDATE(), INTERVAL 14 DAY), 'manual', 'Free-range organic'),
+('test_user', 'Baby Spinach', 5, 'oz', 'Produce', 'fridge', DATE_ADD(CURDATE(), INTERVAL 7 DAY), 'manual', 'Triple washed'),
+('test_user', 'Chicken Breast', 2, 'lbs', 'Meat', 'fridge', DATE_ADD(CURDATE(), INTERVAL 3 DAY), 'manual', 'Boneless, skinless'),
+('test_user', 'Brown Rice', 2, 'lbs', 'Grains', 'pantry', DATE_ADD(CURDATE(), INTERVAL 365 DAY), 'manual', 'Long grain'),
+('test_user', 'Olive Oil', 500, 'ml', 'Oils & Vinegars', 'pantry', DATE_ADD(CURDATE(), INTERVAL 180 DAY), 'manual', 'Extra virgin'),
+('test_user', 'Canned Tomatoes', 4, 'cans', 'Canned Goods', 'pantry', DATE_ADD(CURDATE(), INTERVAL 730 DAY), 'manual', 'San Marzano style'),
+('test_user', 'Greek Yogurt', 32, 'oz', 'Dairy', 'fridge', DATE_ADD(CURDATE(), INTERVAL 10 DAY), 'manual', 'Plain, full-fat'),
+('test_user', 'Bananas', 6, 'pcs', 'Produce', 'pantry', DATE_ADD(CURDATE(), INTERVAL 5 DAY), 'manual', 'Perfect for smoothies'),
+('test_user', 'Garlic', 1, 'head', 'Produce', 'pantry', DATE_ADD(CURDATE(), INTERVAL 30 DAY), 'manual', 'Fresh bulb'),
 -- User001 pantry
 ('user001', 'Tofu', 14, 'oz', 'Meat', 'fridge', DATE_ADD(CURDATE(), INTERVAL 7 DAY), 'manual', 'Extra firm'),
 ('user001', 'Quinoa', 1, 'lb', 'Grains', 'pantry', DATE_ADD(CURDATE(), INTERVAL 365 DAY), 'manual', 'Tri-color blend'),
@@ -134,22 +134,22 @@ INSERT INTO template_ingredients (template_id, ingredient_name, quantity, unit, 
 
 -- Insert sample meal plan sessions
 INSERT INTO meal_plan_sessions (user_id, session_name, start_date, end_date, total_days, dietary_preference, max_cooking_time, status, generation_prompt) VALUES
-('demo_user', 'Weekly Meal Plan - March 2025', '2025-03-10', '2025-03-16', 7, 'balanced', 45, 'active', 'Generated a balanced 7-day meal plan with 45 minutes max cooking time per day'),
+('test_user', 'Weekly Meal Plan - March 2025', '2025-03-10', '2025-03-16', 7, 'balanced', 45, 'active', 'Generated a balanced 7-day meal plan with 45 minutes max cooking time per day'),
 ('user001', 'Vegetarian Week', '2025-03-08', '2025-03-14', 7, 'vegetarian', 30, 'active', 'Vegetarian meal plan focusing on quick 30-minute meals'),
-('demo_user', 'Quick & Easy Plan', '2025-02-24', '2025-02-28', 5, 'none', 30, 'completed', 'Quick 5-day meal plan for busy week with 30 minutes max cooking time');
+('test_user', 'Quick & Easy Plan', '2025-02-24', '2025-02-28', 5, 'none', 30, 'completed', 'Quick 5-day meal plan for busy week with 30 minutes max cooking time');
 
 -- Insert sample meals
 INSERT INTO meals (user_id, meal_date, meal_type, recipe_template_id, session_id, is_completed, notes) VALUES
 -- Demo user's current week meals
-('demo_user', '2025-03-10', 'breakfast', 1, 1, FALSE, 'Using spinach from pantry'),
-('demo_user', '2025-03-10', 'lunch', 4, 1, FALSE, ''),
-('demo_user', '2025-03-10', 'dinner', 8, 1, FALSE, 'Salmon from freezer'),
-('demo_user', '2025-03-11', 'breakfast', 2, 1, FALSE, ''),
-('demo_user', '2025-03-11', 'lunch', 5, 1, FALSE, ''),
-('demo_user', '2025-03-11', 'dinner', 9, 1, FALSE, ''),
-('demo_user', '2025-03-12', 'breakfast', 3, 1, FALSE, ''),
-('demo_user', '2025-03-12', 'lunch', 6, 1, FALSE, ''),
-('demo_user', '2025-03-12', 'dinner', 7, 1, FALSE, ''),
+('test_user', '2025-03-10', 'breakfast', 1, 1, FALSE, 'Using spinach from pantry'),
+('test_user', '2025-03-10', 'lunch', 4, 1, FALSE, ''),
+('test_user', '2025-03-10', 'dinner', 8, 1, FALSE, 'Salmon from freezer'),
+('test_user', '2025-03-11', 'breakfast', 2, 1, FALSE, ''),
+('test_user', '2025-03-11', 'lunch', 5, 1, FALSE, ''),
+('test_user', '2025-03-11', 'dinner', 9, 1, FALSE, ''),
+('test_user', '2025-03-12', 'breakfast', 3, 1, FALSE, ''),
+('test_user', '2025-03-12', 'lunch', 6, 1, FALSE, ''),
+('test_user', '2025-03-12', 'dinner', 7, 1, FALSE, ''),
 
 -- User001's vegetarian meals
 ('user001', '2025-03-08', 'breakfast', 2, 2, TRUE, 'Made with almond milk'),
@@ -159,7 +159,7 @@ INSERT INTO meals (user_id, meal_date, meal_type, recipe_template_id, session_id
 ('user001', '2025-03-09', 'lunch', 4, 2, FALSE, ''),
 
 -- Some standalone meals not part of meal plans
-('demo_user', '2025-03-05', 'breakfast', 1, NULL, TRUE, 'Quick breakfast before work'),
+('test_user', '2025-03-05', 'breakfast', 1, NULL, TRUE, 'Quick breakfast before work'),
 ('user002', '2025-03-07', 'lunch', 6, NULL, TRUE, 'Used gluten-free sauce');
 
 -- Insert sample batch prep steps
@@ -172,7 +172,7 @@ INSERT INTO session_batch_prep (session_id, prep_session_name, step_order, descr
 
 -- Insert sample shopping list items for meal plan sessions
 INSERT INTO session_shopping_lists (session_id, ingredient_name, total_quantity, unit, estimated_cost, category, meals_using) VALUES
--- Shopping list for demo_user's meal plan (session_id: 1)
+-- Shopping list for test_user's meal plan (session_id: 1)
 (1, 'salmon fillets', 4, 'pcs', 16.00, 'Meat & Seafood', '[1,3]'),
 (1, 'asparagus', 2, 'lbs', 4.00, 'Produce', '[3,6]'),
 (1, 'cherry tomatoes', 2, 'cups', 3.00, 'Produce', '[2,4,7]'),
@@ -189,8 +189,8 @@ INSERT INTO session_shopping_lists (session_id, ingredient_name, total_quantity,
 
 -- Insert sample shopping lists (for shopping trip functionality)
 INSERT INTO shopping_lists (user_id, list_name, description, is_active) VALUES
-('demo_user', 'Weekly Groceries', 'Regular weekly shopping trip', TRUE),
-('demo_user', 'Meal Plan Shopping', 'Ingredients for this week\'s meal plan', TRUE),
+('test_user', 'Weekly Groceries', 'Regular weekly shopping trip', TRUE),
+('test_user', 'Meal Plan Shopping', 'Ingredients for this week\'s meal plan', TRUE),
 ('user001', 'Vegetarian Essentials', 'Stock up on vegetarian proteins and produce', FALSE),
 ('user002', 'Gluten-Free Pantry', 'Restock gluten-free staples', TRUE);
 
@@ -216,23 +216,23 @@ INSERT INTO shopping_list_items (list_id, item_name, quantity, notes, is_complet
 
 -- Insert sample shopping carts (completed trips)
 INSERT INTO shopping_cart (user_ID, store_name, status, shopping_list_id) VALUES
-('demo_user', 'Whole Foods', 'purchased', 1),
-('demo_user', 'Trader Joes', 'purchased', NULL),
+('test_user', 'Whole Foods', 'purchased', 1),
+('test_user', 'Trader Joes', 'purchased', NULL),
 ('user001', 'Safeway', 'purchased', 3);
 
 -- Insert cart items from shopping trips
 INSERT INTO cart_item (cart_ID, user_ID, quantity, item_name, price, item_lifetime) VALUES
 -- Demo user's Whole Foods trip
-(1, 'demo_user', 6, 'Organic Bananas', 3.99, 5),
-(1, 'demo_user', 2, 'Greek Yogurt', 8.98, 10),
-(1, 'demo_user', 1, 'Extra Virgin Olive Oil', 12.99, 365),
-(1, 'demo_user', 1, 'Fresh Basil', 2.49, 7),
-(1, 'demo_user', 2, 'Organic Chicken Thighs', 14.50, 3),
+(1, 'test_user', 6, 'Organic Bananas', 3.99, 5),
+(1, 'test_user', 2, 'Greek Yogurt', 8.98, 10),
+(1, 'test_user', 1, 'Extra Virgin Olive Oil', 12.99, 365),
+(1, 'test_user', 1, 'Fresh Basil', 2.49, 7),
+(1, 'test_user', 2, 'Organic Chicken Thighs', 14.50, 3),
 
 -- Demo user's Trader Joe's trip  
-(2, 'demo_user', 4, 'Salmon Fillets', 19.96, 2),
-(2, 'demo_user', 1, 'Asparagus Bundle', 3.99, 7),
-(2, 'demo_user', 1, 'Cherry Tomatoes', 2.99, 7),
+(2, 'test_user', 4, 'Salmon Fillets', 19.96, 2),
+(2, 'test_user', 1, 'Asparagus Bundle', 3.99, 7),
+(2, 'test_user', 1, 'Cherry Tomatoes', 2.99, 7),
 
 -- User001's Safeway trip
 (3, 'user001', 2, 'Extra Firm Tofu', 5.98, 7),
@@ -241,8 +241,8 @@ INSERT INTO cart_item (cart_ID, user_ID, quantity, item_name, price, item_lifeti
 
 -- Insert monthly meal goals
 INSERT INTO monthly_meal_goals (user_id, month, year, meal_plans_goal, meals_completed_goal, new_recipes_goal) VALUES
-('demo_user', 3, 2025, 4, 80, 15),
-('demo_user', 2, 2025, 3, 60, 12),
+('test_user', 3, 2025, 4, 80, 15),
+('test_user', 2, 2025, 3, 60, 12),
 ('user001', 3, 2025, 2, 50, 10),
 ('user002', 3, 2025, 3, 70, 8);
 

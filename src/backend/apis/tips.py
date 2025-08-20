@@ -141,58 +141,6 @@ def get_daily_tip():
         cursor.close()
 
 
-@tips_bp.route("/tips/stats", methods=["GET"])
-def get_tip_stats():
-    """Get statistics about tips for the current user"""
-    if "user_ID" not in session:
-        return jsonify({"success": False, "message": "Not authenticated"})
-
-    user_id = session["user_ID"]
-    
-    db = get_db()
-    cursor = db.cursor()
-    
-    try:
-        # Get total tips available
-        cursor.execute("SELECT COUNT(*) as total FROM tips WHERE is_active = TRUE")
-        total_tips = cursor.fetchone()["total"]
-        
-        # Get tips seen by user
-        cursor.execute("""
-            SELECT COUNT(*) as seen 
-            FROM user_tip_history 
-            WHERE user_id = %s
-        """, (user_id,))
-        seen_tips = cursor.fetchone()["seen"]
-        
-        # Get tips seen in last 10 days
-        cutoff_date = datetime.now() - timedelta(days=10)
-        cursor.execute("""
-            SELECT COUNT(*) as recent 
-            FROM user_tip_history 
-            WHERE user_id = %s AND shown_at >= %s
-        """, (user_id, cutoff_date))
-        recent_tips = cursor.fetchone()["recent"]
-        
-        return jsonify({
-            "success": True,
-            "stats": {
-                "total_tips": total_tips,
-                "tips_seen": seen_tips,
-                "recent_tips": recent_tips,
-                "available_tips": total_tips - recent_tips
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": f"Failed to get tip stats: {str(e)}"
-        })
-    finally:
-        cursor.close()
-
-
 @tips_bp.route("/tips/categories", methods=["GET"])
 def get_tip_categories():
     """Get all available tip categories"""
