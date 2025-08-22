@@ -159,3 +159,6 @@ preppr-mobile/
 
 # git
 .gitattributes
+
+# pem
+*.pem

@@ -191,7 +191,7 @@ async function handleFormSubmit(event) {
     // 1) Search for item by UPC using Nutritionix API
     const searchResponse = await fetch(
       `${
-        config.urls?.searchItem || "/api/shopping-trip/searchitem"
+        config.urls?.searchItem || "/api/searchitem"
       }?upc=${encodeURIComponent(itemName)}`
     );
     const searchData = await searchResponse.json();
