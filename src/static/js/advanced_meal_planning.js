@@ -4,8 +4,11 @@
 
 let chatbotState = {
   pantryItems: [],
+  filteredPantryItems: [],
+  selectedPantryItems: [],
   foodRestrictions: [''],
-  isLoading: false
+  isLoading: false,
+  searchTimeout: null
 };
 
 // Initialize page functionality
@@ -209,56 +212,109 @@ function initializeSidebar() {
 function initializePantrySection() {
   const addPantryBtn = document.getElementById('addPantryBtn');
   addPantryBtn?.addEventListener('click', showAddPantryModal);
+  
+  // Initialize search functionality
+  const searchInput = document.getElementById('pantrySearchInput');
+  searchInput?.addEventListener('input', handlePantrySearch);
+  searchInput?.addEventListener('focus', handleSearchFocus);
+  searchInput?.addEventListener('blur', handleSearchBlur);
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const searchWrapper = document.querySelector('.pantry-search-wrapper');
+    if (!searchWrapper?.contains(e.target)) {
+      hideSearchDropdown();
+    }
+  });
 }
 
 function loadPantryItems() {
-  const pantryList = document.getElementById('pantryItemsList');
-  if (!pantryList) return;
-  
-  // Show loading state
-  pantryList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 1rem;"><i class="fas fa-spinner fa-spin"></i> Loading pantry items...</div>';
-  
+  // Load all pantry items initially (no search query)
   fetch('/api/pantry/items')
     .then(response => response.json())
     .then(data => {
       if (data.success) {
         chatbotState.pantryItems = data.items || [];
-        renderPantryItems();
-      } else {
-        pantryList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 1rem;">No pantry items found</div>';
       }
     })
     .catch(error => {
       console.error('Error loading pantry items:', error);
-      pantryList.innerHTML = '<div style="text-align: center; color: var(--error-color); padding: 1rem;">Error loading pantry items</div>';
     });
 }
 
-function renderPantryItems() {
-  const pantryList = document.getElementById('pantryItemsList');
-  if (!pantryList) return;
-  
-  if (chatbotState.pantryItems.length === 0) {
-    pantryList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 1rem;">No pantry items available</div>';
+function searchPantryItems(searchQuery) {
+  if (!searchQuery.trim()) {
+    hideSearchDropdown();
     return;
   }
   
-  const itemsHTML = chatbotState.pantryItems
-    .slice(0, 10) // Show only first 10 items to prevent overcrowding
-    .map(item => `
-      <div class="pantry-item">
-        <div>
-          <div class="pantry-item-name">${item.item_name}</div>
-          <div class="pantry-item-amount">${item.quantity} ${item.unit || ''}</div>
-        </div>
-      </div>
-    `).join('');
+  const url = `/api/pantry/items?search=${encodeURIComponent(searchQuery)}`;
   
-  pantryList.innerHTML = itemsHTML;
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        chatbotState.filteredPantryItems = data.items || [];
+        renderSearchResults(data.items || []);
+      } else {
+        chatbotState.filteredPantryItems = [];
+        renderSearchResults([]);
+      }
+    })
+    .catch(error => {
+      console.error('Error searching pantry items:', error);
+      chatbotState.filteredPantryItems = [];
+      renderSearchResults([]);
+    });
+}
+
+function renderSearchResults(items) {
+  const resultsContainer = document.getElementById('pantrySearchResults');
+  if (!resultsContainer) return;
   
-  if (chatbotState.pantryItems.length > 10) {
-    pantryList.innerHTML += `<div style="text-align: center; color: var(--text-muted); font-size: 0.75rem; margin-top: 0.5rem;">+${chatbotState.pantryItems.length - 10} more items available</div>`;
+  if (items.length === 0) {
+    resultsContainer.innerHTML = '<div style="padding: var(--spacing-sm); text-align: center; color: var(--text-muted); font-size: 0.875rem;">No items found</div>';
+    showSearchDropdown();
+    return;
   }
+  
+  const itemsHTML = items
+    .slice(0, 8) // Limit to 8 items in dropdown
+    .map(item => {
+      const isSelected = chatbotState.selectedPantryItems.some(selected => selected.pantry_item_id === item.pantry_item_id);
+      
+      return `
+        <div class="search-result-item" data-item-id="${item.pantry_item_id}" style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-sm); border-bottom: 1px solid var(--border-light); cursor: pointer; transition: background 0.2s ease;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+          <div>
+            <div style="font-weight: 500; font-size: 0.875rem; color: var(--text-primary);">${item.item_name}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${item.quantity} ${item.unit || ''}</div>
+          </div>
+          <button class="add-item-btn" data-item-id="${item.pantry_item_id}" style="background: none; border: none; color: ${isSelected ? 'var(--primary-color)' : 'var(--text-muted)'}; cursor: pointer; padding: 4px; border-radius: 50%; transition: all 0.2s ease;" ${isSelected ? 'disabled' : ''} title="${isSelected ? 'Already selected' : 'Add to selection'}">
+            <i class="fas ${isSelected ? 'fa-check' : 'fa-plus'}"></i>
+          </button>
+        </div>
+      `;
+    }).join('');
+  
+  resultsContainer.innerHTML = itemsHTML;
+  
+  // Add event listeners to add buttons
+  resultsContainer.querySelectorAll('.add-item-btn:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const itemId = parseInt(btn.getAttribute('data-item-id'));
+
+      selectPantryItem(itemId);
+      
+      // Update this specific button to show selected state
+      btn.innerHTML = '<i class="fas fa-check"></i>';
+      btn.style.color = 'var(--primary-color)';
+      btn.disabled = true;
+      btn.title = 'Already selected';
+    });
+  });
+  
+  showSearchDropdown();
 }
 
 function showAddPantryModal() {
@@ -368,6 +424,9 @@ function sendMessageToAPI(message) {
     conversation_history: conversationHistory
   };
 
+  // Include selected pantry items in the payload
+  payload.selected_pantry_items = chatbotState.selectedPantryItems;
+  
   return fetch('/api/advanced-meal-planning/chat', {
     method: 'POST',
     headers: {
@@ -437,6 +496,123 @@ function handleMealPlanGeneration(mealPlanData) {
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
+
+// ============================================================================
+// PANTRY SEARCH AND SELECTION FUNCTIONALITY
+// ============================================================================
+
+function handlePantrySearch(e) {
+  const searchQuery = e.target.value.trim();
+  
+  // Clear existing timeout
+  if (chatbotState.searchTimeout) {
+    clearTimeout(chatbotState.searchTimeout);
+  }
+  
+  // Debounce search with 300ms delay
+  chatbotState.searchTimeout = setTimeout(() => {
+    searchPantryItems(searchQuery);
+  }, 300);
+}
+
+function handleSearchFocus() {
+  const searchInput = document.getElementById('pantrySearchInput');
+  if (searchInput?.value.trim()) {
+    showSearchDropdown();
+  }
+}
+
+function handleSearchBlur() {
+  // Delay hiding to allow clicks on dropdown items
+  setTimeout(() => {
+    hideSearchDropdown();
+  }, 200);
+}
+
+function showSearchDropdown() {
+  const dropdown = document.getElementById('pantrySearchResults');
+  
+  if (dropdown) {
+    dropdown.style.display = 'block';
+  }
+}
+
+function hideSearchDropdown() {
+  const dropdown = document.getElementById('pantrySearchResults');
+  if (dropdown) {
+    dropdown.style.display = 'none';
+  }
+}
+
+function selectPantryItem(itemId) {
+  // Find item in filtered search results
+  const item = chatbotState.filteredPantryItems.find(i => i.pantry_item_id === itemId);
+
+  console.log("SJEIHSEGHSEOGHOSEHG")
+  
+  if (item && !chatbotState.selectedPantryItems.some(selected => selected.pantry_item_id === itemId)) {
+    chatbotState.selectedPantryItems.push(item);
+    renderSelectedItems();
+  }
+}
+
+function removePantryItem(itemId) {
+  chatbotState.selectedPantryItems = chatbotState.selectedPantryItems.filter(
+    item => item.pantry_item_id !== itemId
+  );
+  renderSelectedItems();
+  
+  // If search results are visible, refresh them to update the + buttons
+  const searchInput = document.getElementById('pantrySearchInput');
+  const dropdown = document.getElementById('pantrySearchResults');
+  if (dropdown?.style.display !== 'none' && searchInput?.value.trim()) {
+    searchPantryItems(searchInput.value.trim());
+  }
+}
+
+function renderSelectedItems() {
+  const selectedList = document.getElementById('selectedItemsList');
+  if (!selectedList) return;
+
+  console.log(selectedList);
+  
+  if (chatbotState.selectedPantryItems.length === 0) {
+    selectedList.innerHTML = `
+      <div class="empty-state" style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: var(--spacing-sm);">
+        No items selected yet
+      </div>
+    `;
+    return;
+  }
+  
+  const itemsHTML = chatbotState.selectedPantryItems.map(item => `
+    <div class="selected-item" style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-xs); background: var(--bg-secondary); border-radius: var(--radius-sm);">
+      <span style="font-size: 0.875rem; color: var(--text-primary);">${item.item_name} (${item.quantity} ${item.unit || ''})</span>
+      <button class="btn-remove-selected" data-item-id="${item.pantry_item_id}" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px; transition: color 0.2s ease;" title="Remove from selection">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `).join('');
+  
+  selectedList.innerHTML = itemsHTML;
+  
+  // Add event listeners to remove buttons
+  selectedList.querySelectorAll('.btn-remove-selected').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const itemId = parseInt(btn.getAttribute('data-item-id'));
+      removePantryItem(itemId);
+    });
+    
+    // Hover effect
+    btn.addEventListener('mouseenter', () => {
+      btn.style.color = 'var(--error-color)';
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.color = 'var(--text-muted)';
+    });
+  });
+}
 
 function showMessage(message, type) {
   // Remove existing messages

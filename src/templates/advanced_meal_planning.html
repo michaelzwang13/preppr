@@ -518,9 +518,33 @@
             
             <div class="sidebar-section">
               <h4><i class="fas fa-carrot"></i> Pantry Items</h4>
-              <div class="pantry-items-list" id="pantryItemsList">
-                <!-- Dynamic pantry items will be loaded here -->
+              
+              <!-- Search bar for pantry items -->
+              <div class="pantry-search-wrapper" style="position: relative; margin-bottom: var(--spacing-md);">
+                <input 
+                  type="text" 
+                  id="pantrySearchInput" 
+                  placeholder="Search by name, category, or tags..." 
+                  style="width: 100%; padding: var(--spacing-sm); border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 0.875rem; font-family: var(--font-family);"
+                />
+                <!-- Search results dropdown -->
+                <div id="pantrySearchResults" class="search-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-light); border-top: none; border-radius: 0 0 var(--radius-md) var(--radius-md); max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                  <!-- Search results will appear here -->
+                </div>
               </div>
+              
+              <!-- Selected pantry items (for meal planning) -->
+              <div class="selected-pantry-items" id="selectedPantryItems" style="margin-bottom: var(--spacing-md);">
+                <h5 style="margin: 0 0 var(--spacing-sm) 0; font-size: 0.875rem; color: var(--text-secondary);">
+                  <i class="fas fa-check-circle" style="color: var(--primary-color);"></i> Selected for meal plan:
+                </h5>
+                <div class="selected-items-list" id="selectedItemsList" style="display: flex; flex-direction: column; gap: var(--spacing-xs); max-height: 120px; overflow-y: auto; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: var(--spacing-sm); background: var(--bg-primary); min-height: 60px;">
+                  <div class="empty-state" style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: var(--spacing-sm);">
+                    No items selected yet
+                  </div>
+                </div>
+              </div>
+              
               <button class="btn-add-pantry" id="addPantryBtn">
                 <i class="fas fa-plus"></i> Add Item
               </button>
