@@ -40,6 +40,9 @@ function initializeChatbot() {
   // Sidebar functionality
   initializeSidebar();
   
+  // Sidebar toggle functionality
+  initializeSidebarToggle();
+  
   // Load pantry items
   loadPantryItems();
 }
@@ -130,10 +133,7 @@ function addMessageToChat(message, sender) {
   const messageDiv = document.createElement('div');
   messageDiv.className = `message ${sender}-message`;
   
-  const avatar = sender === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
-  
   messageDiv.innerHTML = `
-    <div class="message-avatar">${avatar}</div>
     <div class="message-content">
       <p>${message}</p>
     </div>
@@ -162,7 +162,6 @@ function showTypingIndicator() {
   typingDiv.id = 'typingIndicator';
   typingDiv.className = 'message assistant-message';
   typingDiv.innerHTML = `
-    <div class="message-avatar"><i class="fas fa-robot"></i></div>
     <div class="message-content">
       <p style="opacity: 0.6;">
         <i class="fas fa-circle" style="animation: pulse 1.5s ease-in-out infinite;"></i>
@@ -209,10 +208,18 @@ function initializeSidebar() {
   initializeDietaryPreferences();
 }
 
-function initializePantrySection() {
-  const addPantryBtn = document.getElementById('addPantryBtn');
-  addPantryBtn?.addEventListener('click', showAddPantryModal);
+function initializeSidebarToggle() {
+  const toggleBtn = document.getElementById('sidebarToggle');
+  const sidebar = document.querySelector('.chatbot-sidebar');
   
+  if (!toggleBtn || !sidebar) return;
+  
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('hidden');
+  });
+}
+
+function initializePantrySection() {
   // Initialize search functionality
   const searchInput = document.getElementById('pantrySearchInput');
   searchInput?.addEventListener('input', handlePantrySearch);
@@ -317,9 +324,6 @@ function renderSearchResults(items) {
   showSearchDropdown();
 }
 
-function showAddPantryModal() {
-  showMessage('Pantry management coming soon! You can add items from the Pantry page.', 'info');
-}
 
 function initializeFoodRestrictions() {
   const addRestrictionBtn = document.getElementById('addRestrictionBtn');

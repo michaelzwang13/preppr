@@ -249,13 +249,26 @@
         color: var(--text-white);
       }
 
+      .chatbot-title {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+      }
+
       .chatbot-title h3 {
         margin: 0 0 var(--spacing-sm) 0;
         font-size: 2rem;
         font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-md);
+      }
+
+      /* Sidebar toggle styles */
+      .chatbot-sidebar.hidden {
+        margin-left: -320px;
+        transition: margin-left 0.3s ease;
+      }
+
+      .chatbot-sidebar {
+        transition: margin-left 0.3s ease;
       }
 
       .chatbot-title p {
@@ -278,38 +291,15 @@
 
       .message {
         display: flex;
-        gap: var(--spacing-md);
         max-width: 80%;
       }
 
       .message.user-message {
         align-self: flex-end;
-        flex-direction: row-reverse;
       }
 
       .message.assistant-message {
         align-self: flex-start;
-      }
-
-      .message-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        font-size: 1rem;
-      }
-
-      .assistant-message .message-avatar {
-        background: var(--primary-gradient);
-        color: var(--text-white);
-      }
-
-      .user-message .message-avatar {
-        background: var(--secondary-gradient);
-        color: var(--text-white);
       }
 
       .message-content {
@@ -544,10 +534,6 @@
                   </div>
                 </div>
               </div>
-              
-              <button class="btn-add-pantry" id="addPantryBtn">
-                <i class="fas fa-plus"></i> Add Item
-              </button>
             </div>
             
             <div class="sidebar-section">
@@ -594,16 +580,18 @@
           <div class="chatbot-main">
             <div class="chatbot-header">
               <div class="chatbot-title">
-                <h3><i class="fas fa-robot"></i> AI Meal Planning Assistant</h3>
-                <p>Tell me what you're looking for and I'll help create the perfect meal plan</p>
+                <button id="sidebarToggle" class="sidebar-toggle" style="background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; margin-right: var(--spacing-md); padding: var(--spacing-xs); border-radius: var(--radius-sm); transition: background 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">
+                  <i class="fas fa-bars"></i>
+                </button>
+                <div>
+                  <h3>AI Meal Planning Assistant</h3>
+                  <p>Tell me what you're looking for and I'll help create the perfect meal plan</p>
+                </div>
               </div>
             </div>
             
             <div class="chat-messages" id="chatMessages">
               <div class="message assistant-message">
-                <div class="message-avatar">
-                  <i class="fas fa-robot"></i>
-                </div>
                 <div class="message-content">
                   <p>Hi! I'm your meal planning assistant. I can help you create personalized meal plans based on your pantry items, dietary preferences, and specific requirements.</p>
                   <p>What kind of meal plan would you like me to create for you?</p>
