@@ -8,7 +8,9 @@ let chatbotState = {
   selectedPantryItems: [],
   foodRestrictions: [''],
   isLoading: false,
-  searchTimeout: null
+  searchTimeout: null,
+  currentConversationId: null,
+  conversations: []
 };
 
 // Initialize page functionality
@@ -45,6 +47,9 @@ function initializeChatbot() {
   
   // Load pantry items
   loadPantryItems();
+  
+  // Load conversation history
+  loadConversations();
 }
 
 function updateSendButton() {
@@ -101,6 +106,13 @@ function sendChatMessage() {
       if (response.success) {
         addMessageToChat(response.response, 'assistant');
         
+        // Update conversation ID if this was a new conversation
+        if (response.conversation_id && !chatbotState.currentConversationId) {
+          chatbotState.currentConversationId = response.conversation_id;
+          // Reload conversations list to show the new conversation
+          loadConversations();
+        }
+        
         // Update suggestions if provided
         if (response.suggestions && response.suggestions.length > 0) {
           updateSuggestionButtons(response.suggestions);
@@ -126,7 +138,7 @@ function sendChatMessage() {
     });
 }
 
-function addMessageToChat(message, sender) {
+function addMessageToChat(message, sender, metadata = null) {
   const chatMessages = document.getElementById('chatMessages');
   if (!chatMessages) return;
   
@@ -140,6 +152,13 @@ function addMessageToChat(message, sender) {
   `;
   
   chatMessages.appendChild(messageDiv);
+  
+  // Handle metadata (for loaded conversations)
+  if (metadata && sender === 'assistant') {
+    if (metadata.suggestions && metadata.suggestions.length > 0) {
+      updateSuggestionButtons(metadata.suggestions);
+    }
+  }
   
   // Scroll to bottom
   chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -400,6 +419,243 @@ function getDietaryPreference() {
 }
 
 // ============================================================================
+// CONVERSATION MANAGEMENT
+// ============================================================================
+
+function loadConversations() {
+  fetch('/api/conversations')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        chatbotState.conversations = data.conversations || [];
+        renderConversationsList();
+      } else {
+        console.error('Failed to load conversations:', data.message);
+        renderConversationsList([]); // Render empty state
+      }
+    })
+    .catch(error => {
+      console.error('Error loading conversations:', error);
+      renderConversationsList([]); // Render empty state
+    });
+}
+
+function renderConversationsList() {
+  const conversationsList = document.getElementById('conversationsList');
+  if (!conversationsList) return;
+  
+  if (chatbotState.conversations.length === 0) {
+    conversationsList.innerHTML = `
+      <div class="empty-conversations" style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: var(--spacing-sm);">
+        No conversations yet
+      </div>
+    `;
+    return;
+  }
+  
+  const conversationsHTML = chatbotState.conversations.map(conv => {
+    const isActive = conv.conversation_id === chatbotState.currentConversationId;
+    const lastMessageDate = conv.last_message_at ? new Date(conv.last_message_at).toLocaleDateString() : '';
+    
+    return `
+      <div class="conversation-item ${isActive ? 'active' : ''}" data-conversation-id="${conv.conversation_id}" style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-sm); border: 1px solid var(--border-light); border-radius: var(--radius-sm); margin-bottom: var(--spacing-xs); cursor: pointer; transition: all 0.2s ease; ${isActive ? 'background: var(--primary-color); color: white;' : 'background: var(--bg-primary);'}" onmouseover="if (!this.classList.contains('active')) this.style.background='var(--bg-secondary)'" onmouseout="if (!this.classList.contains('active')) this.style.background='var(--bg-primary)'">
+        <div style="flex: 1; min-width: 0;">
+          <div class="conv-title" style="font-size: 0.85rem; font-weight: 500; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${conv.title}</div>
+          <div class="conv-meta" style="font-size: 0.7rem; opacity: 0.7;">${conv.message_count} messages • ${lastMessageDate}</div>
+        </div>
+        <button class="btn-delete-conversation" data-conversation-id="${conv.conversation_id}" style="background: none; border: none; color: ${isActive ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)'}; cursor: pointer; padding: 4px; opacity: 0.7; transition: opacity 0.2s;" title="Delete conversation">
+          <i class="fas fa-trash fa-xs"></i>
+        </button>
+      </div>
+    `;
+  }).join('');
+  
+  conversationsList.innerHTML = conversationsHTML;
+  
+  // Add event listeners
+  conversationsList.querySelectorAll('.conversation-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      if (!e.target.closest('.btn-delete-conversation')) {
+        const conversationId = parseInt(item.getAttribute('data-conversation-id'));
+        loadConversation(conversationId);
+      }
+    });
+  });
+  
+  conversationsList.querySelectorAll('.btn-delete-conversation').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const conversationId = parseInt(btn.getAttribute('data-conversation-id'));
+      deleteConversation(conversationId);
+    });
+  });
+  
+  // Add new chat button listener
+  const newChatBtn = document.getElementById('newChatBtn');
+  if (newChatBtn) {
+    newChatBtn.onclick = startNewConversation;
+  }
+}
+
+function loadConversation(conversationId) {
+  if (conversationId === chatbotState.currentConversationId) return;
+  
+  fetch(`/api/conversations/${conversationId}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        chatbotState.currentConversationId = conversationId;
+        
+        // Clear current chat and load messages
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+          chatMessages.innerHTML = '';
+          
+          // Add messages to chat
+          if (data.conversation.messages && data.conversation.messages.length > 0) {
+            data.conversation.messages.forEach(msg => {
+              addMessageToChat(msg.message, msg.sender, msg.metadata);
+            });
+          } else {
+            // Add welcome message if no messages
+            addMessageToChat("Hi! I'm your meal planning assistant. I can help you create personalized meal plans based on your pantry items, dietary preferences, and specific requirements. What kind of meal plan would you like me to create for you?", 'assistant');
+          }
+        }
+        
+        // Update conversation list to show active state
+        renderConversationsList();
+        
+        // Load context data if available
+        if (data.conversation.context) {
+          const context = data.conversation.context;
+          
+          // Update dietary preference
+          if (context.dietary_preference && context.dietary_preference !== 'none') {
+            const dietarySelect = document.getElementById('chatDietaryPreference');
+            if (dietarySelect) {
+              dietarySelect.value = context.dietary_preference;
+            }
+          }
+          
+          // Update food restrictions
+          if (context.food_restrictions && context.food_restrictions.length > 0) {
+            const restrictionsContainer = document.getElementById('foodRestrictions');
+            if (restrictionsContainer) {
+              // Clear existing restrictions
+              restrictionsContainer.innerHTML = '';
+              
+              // Add saved restrictions
+              context.food_restrictions.forEach(restriction => {
+                if (restriction.trim()) {
+                  const restrictionDiv = document.createElement('div');
+                  restrictionDiv.className = 'restriction-item';
+                  restrictionDiv.innerHTML = `
+                    <input type="text" value="${restriction}" class="restriction-input" />
+                    <button class="btn-remove-restriction">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  `;
+                  restrictionsContainer.appendChild(restrictionDiv);
+                }
+              });
+              
+              // Add one empty restriction if none exist
+              if (context.food_restrictions.length === 0 || context.food_restrictions.every(r => !r.trim())) {
+                addFoodRestriction();
+              }
+              
+              updateRestrictionEventListeners();
+            }
+          }
+        }
+        
+      } else {
+        console.error('Failed to load conversation:', data.message);
+        showMessage('Failed to load conversation', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading conversation:', error);
+      showMessage('Error loading conversation', 'error');
+    });
+}
+
+function startNewConversation() {
+  // Reset current conversation
+  chatbotState.currentConversationId = null;
+  
+  // Clear chat messages and show welcome message
+  const chatMessages = document.getElementById('chatMessages');
+  if (chatMessages) {
+    chatMessages.innerHTML = '';
+    addMessageToChat("Hi! I'm your meal planning assistant. I can help you create personalized meal plans based on your pantry items, dietary preferences, and specific requirements. What kind of meal plan would you like me to create for you?", 'assistant');
+  }
+  
+  // Reset sidebar inputs
+  const dietarySelect = document.getElementById('chatDietaryPreference');
+  if (dietarySelect) {
+    dietarySelect.value = 'none';
+  }
+  
+  // Clear selected pantry items
+  chatbotState.selectedPantryItems = [];
+  renderSelectedItems();
+  
+  // Reset food restrictions to one empty input
+  const restrictionsContainer = document.getElementById('foodRestrictions');
+  if (restrictionsContainer) {
+    restrictionsContainer.innerHTML = `
+      <div class="restriction-item">
+        <input type="text" placeholder="Block ingredients..." class="restriction-input" />
+        <button class="btn-remove-restriction">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    `;
+    updateRestrictionEventListeners();
+  }
+  
+  // Update conversation list to show no active conversation
+  renderConversationsList();
+}
+
+function deleteConversation(conversationId) {
+  if (!confirm('Are you sure you want to delete this conversation? This action cannot be undone.')) {
+    return;
+  }
+  
+  fetch(`/api/conversations/${conversationId}`, {
+    method: 'DELETE'
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Remove from local state
+        chatbotState.conversations = chatbotState.conversations.filter(
+          conv => conv.conversation_id !== conversationId
+        );
+        
+        // If this was the current conversation, start a new one
+        if (chatbotState.currentConversationId === conversationId) {
+          startNewConversation();
+        }
+        
+        // Re-render conversation list
+        renderConversationsList();
+        
+        showMessage('Conversation deleted', 'success');
+      } else {
+        console.error('Failed to delete conversation:', data.message);
+        showMessage('Failed to delete conversation', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error deleting conversation:', error);
+      showMessage('Error deleting conversation', 'error');
+    });
+}
+
+// ============================================================================
 // CHAT API INTEGRATION
 // ============================================================================
 
@@ -423,13 +679,12 @@ function sendMessageToAPI(message) {
   const payload = {
     message: message,
     pantry_items: chatbotState.pantryItems,
+    selected_pantry_items: chatbotState.selectedPantryItems,
     food_restrictions: getFoodRestrictions(),
     dietary_preference: getDietaryPreference(),
-    conversation_history: conversationHistory
+    conversation_history: conversationHistory,
+    conversation_id: chatbotState.currentConversationId
   };
-
-  // Include selected pantry items in the payload
-  payload.selected_pantry_items = chatbotState.selectedPantryItems;
   
   return fetch('/api/advanced-meal-planning/chat', {
     method: 'POST',

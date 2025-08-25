@@ -503,6 +503,21 @@
           <!-- Sidebar for customization options -->
           <div class="chatbot-sidebar">
             <div class="sidebar-header">
+              <h3>Chat History</h3>
+              <button id="newChatBtn" class="btn-new-chat" style="background: var(--primary-color); border: none; color: white; padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--radius-sm); font-size: 0.8rem; cursor: pointer; margin-top: var(--spacing-xs);">
+                <i class="fas fa-plus"></i> New Chat
+              </button>
+            </div>
+            
+            <div class="sidebar-section" id="conversationHistorySection">
+              <div id="conversationsList" class="conversations-list" style="max-height: 200px; overflow-y: auto;">
+                <div class="loading-conversations" style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: var(--spacing-sm);">
+                  Loading conversations...
+                </div>
+              </div>
+            </div>
+            
+            <div class="sidebar-header" style="border-top: 1px solid var(--border-light); margin-top: var(--spacing-md);">
               <h3>Customize</h3>
             </div>
             
