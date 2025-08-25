@@ -10,7 +10,8 @@ let chatbotState = {
   isLoading: false,
   searchTimeout: null,
   currentConversationId: null,
-  conversations: []
+  conversations: [],
+  currentMode: 'chats' // 'chats' or 'customize'
 };
 
 // Initialize page functionality
@@ -45,11 +46,14 @@ function initializeChatbot() {
   // Sidebar toggle functionality
   initializeSidebarToggle();
   
+  // Initialize mode toggle
+  initializeModeToggle();
+  
   // Load pantry items
   loadPantryItems();
   
-  // Load conversation history
-  loadConversations();
+  // Load conversation history and determine default mode
+  initializeDefaultMode();
 }
 
 function updateSendButton() {
@@ -111,6 +115,10 @@ function sendChatMessage() {
           chatbotState.currentConversationId = response.conversation_id;
           // Reload conversations list to show the new conversation
           loadConversations();
+          // Switch to customize mode if we're in chats mode and just started chatting
+          if (chatbotState.currentMode === 'chats') {
+            switchMode('customize');
+          }
         }
         
         // Update suggestions if provided
@@ -419,6 +427,125 @@ function getDietaryPreference() {
 }
 
 // ============================================================================
+// MODE TOGGLE FUNCTIONALITY
+// ============================================================================
+
+function initializeModeToggle() {
+  const modeToggle = document.getElementById('modeToggle');
+  const modeLabels = document.querySelectorAll('.mode-label');
+  
+  if (modeToggle) {
+    modeToggle.addEventListener('click', () => {
+      const newMode = chatbotState.currentMode === 'chats' ? 'customize' : 'chats';
+      switchMode(newMode);
+    });
+  }
+  
+  // Add click listeners to mode labels
+  modeLabels.forEach(label => {
+    label.addEventListener('click', () => {
+      const mode = label.getAttribute('data-mode');
+      switchMode(mode);
+    });
+  });
+}
+
+function switchMode(mode) {
+  if (mode === chatbotState.currentMode) return;
+  
+  chatbotState.currentMode = mode;
+  updateModeDisplay();
+}
+
+function updateModeDisplay() {
+  const chatModeContent = document.getElementById('chatModeContent');
+  const customizeModeContent = document.getElementById('customizeModeContent');
+  const toggleSlider = document.querySelector('.toggle-slider');
+  const modeLabels = document.querySelectorAll('.mode-label');
+  
+  // Update content visibility
+  if (chatbotState.currentMode === 'chats') {
+    if (chatModeContent) chatModeContent.style.display = 'block';
+    if (customizeModeContent) customizeModeContent.style.display = 'none';
+    if (toggleSlider) toggleSlider.style.left = '2px';
+  } else {
+    if (chatModeContent) chatModeContent.style.display = 'none';
+    if (customizeModeContent) customizeModeContent.style.display = 'block';
+    if (toggleSlider) toggleSlider.style.left = '26px';
+  }
+  
+  // Update mode labels styling
+  modeLabels.forEach(label => {
+    const labelMode = label.getAttribute('data-mode');
+    if (labelMode === chatbotState.currentMode) {
+      label.style.color = 'var(--primary-color)';
+      label.style.fontWeight = '600';
+    } else {
+      label.style.color = 'var(--text-secondary)';
+      label.style.fontWeight = '500';
+    }
+  });
+}
+
+function initializeDefaultMode() {
+  // Load conversations first, then determine default mode
+  fetch('/api/conversations')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        chatbotState.conversations = data.conversations || [];
+        
+        // Check if user has recent activity (last 12 hours)
+        const hasRecentActivity = checkRecentActivity(chatbotState.conversations);
+        
+        if (hasRecentActivity) {
+          // Default to customize mode and load most recent conversation
+          chatbotState.currentMode = 'customize';
+          const mostRecentConv = chatbotState.conversations[0]; // Conversations are ordered by updated_at DESC
+          if (mostRecentConv) {
+            loadConversation(mostRecentConv.conversation_id);
+          }
+        } else {
+          // Default to chats mode and start new conversation
+          chatbotState.currentMode = 'chats';
+          startNewConversation();
+        }
+        
+        // Update the display
+        updateModeDisplay();
+        renderConversationsList();
+        
+      } else {
+        // Fallback to chats mode if failed to load conversations
+        chatbotState.currentMode = 'chats';
+        updateModeDisplay();
+        startNewConversation();
+      }
+    })
+    .catch(error => {
+      console.error('Error loading conversations:', error);
+      // Fallback to chats mode
+      chatbotState.currentMode = 'chats';
+      updateModeDisplay();
+      startNewConversation();
+    });
+}
+
+function checkRecentActivity(conversations) {
+  if (!conversations || conversations.length === 0) return false;
+  
+  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+  const mostRecent = conversations[0]; // First conversation is most recent
+  
+  if (mostRecent && mostRecent.last_message_at) {
+    const lastMessageTime = new Date(mostRecent.last_message_at);
+    return lastMessageTime > twelveHoursAgo;
+  }
+  
+  return false;
+}
+
+// ============================================================================
 // CONVERSATION MANAGEMENT
 // ============================================================================
 
@@ -431,12 +558,12 @@ function loadConversations() {
         renderConversationsList();
       } else {
         console.error('Failed to load conversations:', data.message);
-        renderConversationsList([]); // Render empty state
+        renderConversationsList(); // Render empty state
       }
     })
     .catch(error => {
       console.error('Error loading conversations:', error);
-      renderConversationsList([]); // Render empty state
+      renderConversationsList(); // Render empty state
     });
 }
 
@@ -524,6 +651,11 @@ function loadConversation(conversationId) {
         
         // Update conversation list to show active state
         renderConversationsList();
+        
+        // Switch to customize mode when loading a conversation
+        if (chatbotState.currentMode === 'chats') {
+          switchMode('customize');
+        }
         
         // Load context data if available
         if (data.conversation.context) {
