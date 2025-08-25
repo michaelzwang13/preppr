@@ -249,17 +249,31 @@ function initializeSidebarToggle() {
 function initializePantrySection() {
   // Initialize search functionality
   const searchInput = document.getElementById('pantrySearchInput');
-  searchInput?.addEventListener('input', handlePantrySearch);
-  searchInput?.addEventListener('focus', handleSearchFocus);
-  searchInput?.addEventListener('blur', handleSearchBlur);
   
-  // Close dropdown when clicking outside
-  document.addEventListener('click', (e) => {
-    const searchWrapper = document.querySelector('.pantry-search-wrapper');
-    if (!searchWrapper?.contains(e.target)) {
-      hideSearchDropdown();
-    }
-  });
+  // Remove existing event listeners to avoid duplicates
+  if (searchInput) {
+    const newSearchInput = searchInput.cloneNode(true);
+    searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+    
+    // Add event listeners to the new element
+    newSearchInput.addEventListener('input', handlePantrySearch);
+    newSearchInput.addEventListener('focus', handleSearchFocus);
+    newSearchInput.addEventListener('blur', handleSearchBlur);
+  }
+  
+  // Initialize selected items display
+  renderSelectedItems();
+  
+  // Ensure dropdown close functionality (only add once)
+  if (!document._pantryClickListenerAdded) {
+    document.addEventListener('click', (e) => {
+      const searchWrapper = document.querySelector('.pantry-search-wrapper');
+      if (!searchWrapper?.contains(e.target)) {
+        hideSearchDropdown();
+      }
+    });
+    document._pantryClickListenerAdded = true;
+  }
 }
 
 function loadPantryItems() {
@@ -447,6 +461,11 @@ function switchMode(mode) {
   
   chatbotState.currentMode = mode;
   updateModeDisplay();
+  
+  // Re-initialize pantry section when switching to customize mode
+  if (mode === 'customize') {
+    initializePantrySection();
+  }
 }
 
 function updateModeDisplay() {
@@ -461,6 +480,9 @@ function updateModeDisplay() {
   } else {
     if (chatModeContent) chatModeContent.style.display = 'none';
     if (customizeModeContent) customizeModeContent.style.display = 'block';
+    
+    // Initialize pantry section when customize mode is shown
+    initializePantrySection();
   }
   
   // Update mode labels styling - only font changes
@@ -927,8 +949,6 @@ function hideSearchDropdown() {
 function selectPantryItem(itemId) {
   // Find item in filtered search results
   const item = chatbotState.filteredPantryItems.find(i => i.pantry_item_id === itemId);
-
-  console.log("SJEIHSEGHSEOGHOSEHG")
   
   if (item && !chatbotState.selectedPantryItems.some(selected => selected.pantry_item_id === itemId)) {
     chatbotState.selectedPantryItems.push(item);
@@ -953,8 +973,6 @@ function removePantryItem(itemId) {
 function renderSelectedItems() {
   const selectedList = document.getElementById('selectedItemsList');
   if (!selectedList) return;
-
-  console.log(selectedList);
   
   if (chatbotState.selectedPantryItems.length === 0) {
     selectedList.innerHTML = `
