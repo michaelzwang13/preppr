@@ -575,10 +575,14 @@
           <div class="chatbot-sidebar">
             <!-- Mode Toggle Header -->
             <div class="sidebar-header">
-              <div class="mode-toggle-container" style="display: flex; align-items: center; justify-content: center; gap: var(--spacing-sm);">
-                <span class="mode-label" data-mode="chats" style="font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease;">Chats</span>
+              <div class="mode-toggle-container" style="display: flex; align-items: center; position: relative;">
+                <div style="flex: 1; display: flex; justify-content: center;">
+                  <span class="mode-label" data-mode="chats" style="font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease;">Chats</span>
+                </div>
                 <div class="mode-divider" style="width: 1px; height: 16px; background: var(--border-medium); opacity: 0.6;"></div>
-                <span class="mode-label" data-mode="customize" style="font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease;">Customize</span>
+                <div style="flex: 1; display: flex; justify-content: center;">
+                  <span class="mode-label" data-mode="customize" style="font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease;">Customize</span>
+                </div>
               </div>
             </div>
             
