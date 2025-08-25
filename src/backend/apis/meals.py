@@ -1733,9 +1733,30 @@ def advanced_meal_planning_chat():
                 (conversation_id,)
             )
             
-            # Auto-generate conversation title from first exchange if it's a new conversation
+            # Auto-generate conversation title from first few exchanges if it's a new conversation
             if not data.get("conversation_id"):
-                title = generate_conversation_title(message, response["message"])
+                # Get conversation messages for title generation
+                cursor.execute("""
+                    SELECT sender, message_content
+                    FROM chat_messages 
+                    WHERE conversation_id = %s 
+                    ORDER BY created_at ASC
+                    LIMIT 6
+                """, (conversation_id,))
+                
+                conversation_messages = []
+                for msg in cursor.fetchall():
+                    conversation_messages.append({
+                        'sender': msg['sender'],
+                        'message': msg['message_content']
+                    })
+                
+                # Extract context data that was stored with the conversation
+                cursor.execute("SELECT context_data FROM chat_conversations WHERE conversation_id = %s", (conversation_id,))
+                context_result = cursor.fetchone()
+                stored_context = json.loads(context_result['context_data']) if context_result and context_result['context_data'] else None
+                
+                title = generate_conversation_title_with_ai(conversation_messages, stored_context)
                 cursor.execute(
                     "UPDATE chat_conversations SET conversation_title = %s WHERE conversation_id = %s",
                     (title, conversation_id)
@@ -1963,9 +1984,97 @@ def create_new_conversation():
         cursor.close()
 
 
-def generate_conversation_title(user_message, ai_response):
-    """Generate a concise title for the conversation based on the first exchange"""
-    # Simple logic to extract key topics from the user's first message
+def generate_conversation_title_with_ai(conversation_messages, context_data=None):
+    """Generate a concise conversation title using Gemini Flash AI"""
+    try:
+        # Get first 2-3 user messages for context
+        user_messages = []
+        for msg in conversation_messages[:6]:  # Look at first 6 messages (3 exchanges)
+            if msg.get('sender') == 'user':
+                user_messages.append(msg.get('message', ''))
+                if len(user_messages) >= 3:  # Limit to first 3 user messages
+                    break
+        
+        if not user_messages:
+            return "New Conversation"
+        
+        # Build context from additional data
+        context_parts = []
+        if context_data:
+            if context_data.get('dietary_preference') and context_data.get('dietary_preference') != 'none':
+                context_parts.append(f"Diet: {context_data['dietary_preference']}")
+            if context_data.get('food_restrictions'):
+                restrictions = [r for r in context_data['food_restrictions'] if r.strip()]
+                if restrictions:
+                    context_parts.append(f"Restrictions: {', '.join(restrictions[:2])}")
+        
+        context_text = " | ".join(context_parts) if context_parts else ""
+        user_text = " | ".join(user_messages)
+        
+        # Build minimal prompt for title generation
+        prompt = f"""Generate a concise 2-5 word title for a meal planning conversation based on these user messages.
+
+USER MESSAGES: {user_text}
+CONTEXT: {context_text}
+
+EXAMPLES:
+- "Weekly Meal Plan"
+- "Keto Dinner Ideas" 
+- "Budget Family Meals"
+- "Quick Lunch Recipes"
+- "Thai Cooking Help"
+- "Pantry Cleanout Plan"
+
+Generate only the title (2-5 words, no quotes, no explanation):"""
+
+        # Use existing Gemini infrastructure with minimal tokens
+        import requests
+        import os
+        
+        api_key = os.getenv('GEMINI_API_KEY')
+        if not api_key:
+            # Fallback to basic logic
+            return generate_basic_conversation_title(user_messages[0])
+            
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key}"
+        
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.3,  # Lower temperature for consistent titles
+                "maxOutputTokens": 15,  # Very limited for just a title
+            }
+        }
+        
+        response = requests.post(url, json=payload, timeout=10)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if 'candidates' in result and result['candidates']:
+                title = result['candidates'][0]['content']['parts'][0]['text'].strip()
+                
+                # Clean up the title
+                title = title.replace('"', '').replace("'", "").strip()
+                
+                # Validate title length (2-5 words, max 50 chars)
+                word_count = len(title.split())
+                if 2 <= word_count <= 5 and len(title) <= 50:
+                    return title
+        
+        # Fallback to basic logic if AI fails or produces invalid title
+        return generate_basic_conversation_title(user_messages[0])
+        
+    except Exception as e:
+        print(f"ERROR: AI title generation failed: {str(e)}")
+        # Fallback to basic logic
+        return generate_basic_conversation_title(conversation_messages[0].get('message', 'New Conversation') if conversation_messages else 'New Conversation')
+
+
+def generate_basic_conversation_title(user_message):
+    """Fallback basic logic for conversation title generation"""
+    if not user_message:
+        return "New Conversation"
+        
     message_lower = user_message.lower()
     
     # Look for specific meal planning topics
