@@ -431,15 +431,7 @@ function getDietaryPreference() {
 // ============================================================================
 
 function initializeModeToggle() {
-  const modeToggle = document.getElementById('modeToggle');
   const modeLabels = document.querySelectorAll('.mode-label');
-  
-  if (modeToggle) {
-    modeToggle.addEventListener('click', () => {
-      const newMode = chatbotState.currentMode === 'chats' ? 'customize' : 'chats';
-      switchMode(newMode);
-    });
-  }
   
   // Add click listeners to mode labels
   modeLabels.forEach(label => {
@@ -460,21 +452,18 @@ function switchMode(mode) {
 function updateModeDisplay() {
   const chatModeContent = document.getElementById('chatModeContent');
   const customizeModeContent = document.getElementById('customizeModeContent');
-  const toggleSlider = document.querySelector('.toggle-slider');
   const modeLabels = document.querySelectorAll('.mode-label');
   
   // Update content visibility
   if (chatbotState.currentMode === 'chats') {
     if (chatModeContent) chatModeContent.style.display = 'block';
     if (customizeModeContent) customizeModeContent.style.display = 'none';
-    if (toggleSlider) toggleSlider.style.left = '2px';
   } else {
     if (chatModeContent) chatModeContent.style.display = 'none';
     if (customizeModeContent) customizeModeContent.style.display = 'block';
-    if (toggleSlider) toggleSlider.style.left = '26px';
   }
   
-  // Update mode labels styling
+  // Update mode labels styling - only font changes
   modeLabels.forEach(label => {
     const labelMode = label.getAttribute('data-mode');
     if (labelMode === chatbotState.currentMode) {
