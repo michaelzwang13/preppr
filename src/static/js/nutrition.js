@@ -356,6 +356,9 @@ async function loadNutritionChartData(period) {
     const data = await response.json();
     
     if (data.success) {
+      console.log('Nutrition data received:', data.data);
+      console.log('Accessible fields:', data.accessible_fields);
+      console.log('Is premium:', data.is_premium);
       renderNutritionChart(data.data, data.goals, data.accessible_fields, data.is_premium);
       updateQuickStats(data.data, data.goals);
     } else {
@@ -467,6 +470,18 @@ function renderNutritionChart(chartData, goals, accessibleFields, isPremium) {
     });
   }
   
+  if (accessibleFields.sodium && isPremium) {
+    datasets.push({
+      label: 'Sodium (mg)',
+      data: chartData.map(d => ({ x: d.date, y: d.sodium || 0 })),
+      borderColor: macroColors.sodium,
+      backgroundColor: macroColors.sodium + '20',
+      tension: 0.4,
+      fill: false,
+      yAxisID: 'y-macros'  // Use same axis as other macros for now
+    });
+  }
+  
   // Chart configuration
   const config = {
     type: 'line',
@@ -514,7 +529,7 @@ function renderNutritionChart(chartData, goals, accessibleFields, isPremium) {
           position: 'right',
           title: {
             display: true,
-            text: 'Grams',
+            text: 'Grams / mg',
             color: macroColors.protein
           },
           ticks: {
