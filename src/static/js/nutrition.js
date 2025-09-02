@@ -544,14 +544,28 @@ function renderNutritionChart(chartData, goals, accessibleFields, isPremium) {
               const label = context.dataset.label || '';
               const value = Math.round(context.parsed.y * 10) / 10;
               
-              // Show goal comparison for main metrics
+              // Show goal/limit comparison for main metrics
               const metric = label.toLowerCase().split(' ')[0];
-              let goalValue = null;
+              let targetValue = null;
+              let targetType = 'goal'; // default
               
               if (goals && goals[metric]) {
-                goalValue = goals[metric];
-                const percentage = goalValue > 0 ? Math.round((value / goalValue) * 100) : 0;
-                return `${label}: ${value} (${percentage}% of ${goalValue} goal)`;
+                targetValue = goals[metric];
+                targetType = goals[`${metric}_type`] || 'goal';
+                
+                if (targetValue > 0) {
+                  const percentage = Math.round((value / targetValue) * 100);
+                  const typeText = targetType === 'limit' ? 'limit' : 'goal';
+                  
+                  if (targetType === 'limit') {
+                    // For limits, show if over/under the limit
+                    const statusText = percentage > 100 ? 'over' : 'under';
+                    return `${label}: ${value} (${percentage}% of ${targetValue} ${typeText}, ${statusText})`;
+                  } else {
+                    // For goals, show progress toward goal
+                    return `${label}: ${value} (${percentage}% of ${targetValue} ${typeText})`;
+                  }
+                }
               }
               
               return `${label}: ${value}`;
