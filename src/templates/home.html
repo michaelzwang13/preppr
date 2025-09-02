@@ -1832,6 +1832,8 @@ window.HOME_CONFIG = {
         mealPlans: "{{ url_for('shopping.meal_plans') }}"
     }
 };
+// Nutrition tracking flag
+window.NUTRITION_TRACKING_ENABLED = {{ 'true' if nutrition_tracking_enabled else 'false' }};
 </script>
 <script src="{{ url_for('static', filename='js/home.js') }}"></script>
 

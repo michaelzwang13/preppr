@@ -273,6 +273,16 @@ async function toggleMealCompletion(
       if (typeof loadWeeklyProgress === "function") {
         loadWeeklyProgress();
       }
+      
+      // Update daily nutrition if nutrition tracking is enabled and meal date is today
+      if (window.NUTRITION_TRACKING_ENABLED && mealDate) {
+        const today = new Date().toISOString().split('T')[0];
+        const mealDateFormatted = new Date(mealDate).toISOString().split('T')[0];
+        
+        if (mealDateFormatted === today && typeof loadDailyNutritionSummary === "function") {
+          loadDailyNutritionSummary();
+        }
+      }
     } else {
       // Revert checkbox on error
       checkbox.checked = !isCompleted;
@@ -691,7 +701,6 @@ async function loadDailyNutritionSummary() {
     if (currentDateElement) {
       currentDateElement.textContent = dateDisplay;
     }
-    
     const response = await fetch(`/api/nutrition/daily/${dateString}`);
     const data = await response.json();
     
@@ -701,25 +710,91 @@ async function loadDailyNutritionSummary() {
     if (data.success) {
       const totals = data.daily_totals;
       const meals = data.meals;
+      const isLimitedTier = data._limited_tier || false;
+      const upgradeMessage = data._upgrade_message;
       
-      let contentHTML = `
-        <div class="nutrition-overview">
-          <div class="nutrition-stat">
-            <span class="nutrition-stat-value">${Math.round(totals.calories)}</span>
-            <span class="nutrition-stat-label">Calories</span>
-          </div>
-          <div class="nutrition-stat">
-            <span class="nutrition-stat-value">${Math.round(totals.protein)}<span class="nutrition-stat-unit">g</span></span>
-            <span class="nutrition-stat-label">Protein</span>
-          </div>
-          <div class="nutrition-stat">
-            <span class="nutrition-stat-value">${Math.round(totals.carbs)}<span class="nutrition-stat-unit">g</span></span>
-            <span class="nutrition-stat-label">Carbs</span>
-          </div>
+      // Build nutrition overview stats - only show non-null values
+      let overviewStats = `
+        <div class="nutrition-stat">
+          <span class="nutrition-stat-value">${Math.round(totals.calories || 0)}</span>
+          <span class="nutrition-stat-label">Calories</span>
+        </div>
+        <div class="nutrition-stat">
+          <span class="nutrition-stat-value">${Math.round(totals.protein || 0)}<span class="nutrition-stat-unit">g</span></span>
+          <span class="nutrition-stat-label">Protein</span>
+        </div>
+      `;
+      
+      // Add premium fields only if they are not null (premium users)
+      if (totals.fat !== null && totals.fat !== undefined) {
+        overviewStats += `
           <div class="nutrition-stat">
             <span class="nutrition-stat-value">${Math.round(totals.fat)}<span class="nutrition-stat-unit">g</span></span>
             <span class="nutrition-stat-label">Fat</span>
           </div>
+        `;
+      }
+      
+      if (totals.carbs !== null && totals.carbs !== undefined) {
+        overviewStats += `
+          <div class="nutrition-stat">
+            <span class="nutrition-stat-value">${Math.round(totals.carbs)}<span class="nutrition-stat-unit">g</span></span>
+            <span class="nutrition-stat-label">Carbs</span>
+          </div>
+        `;
+      }
+      
+      // Build goal display respecting subscription tier
+      const goalDisplay = userNutritionGoals ? 
+        `${userNutritionGoals.daily_calories || 2000} cal` : '2000 cal';
+      
+      let macroTargets = '';
+      if (!isLimitedTier && userNutritionGoals) {
+        // Show full macro targets for premium users
+        const proteinGoal = userNutritionGoals.daily_protein || 150;
+        const carbGoal = userNutritionGoals.daily_carbs || 250;
+        const fatGoal = userNutritionGoals.daily_fat || 70;
+        macroTargets = `${proteinGoal}p/${carbGoal}c/${fatGoal}f`;
+      } else {
+        // Show limited targets for free users
+        const proteinGoal = userNutritionGoals?.daily_protein || 150;
+        macroTargets = `${proteinGoal}p/? c/? f`;
+      }
+      
+      // Build meal breakdown HTML
+      let mealBreakdownHTML = '';
+      const completedMeals = meals.filter(meal => meal.is_completed);
+      
+      if (completedMeals.length > 0) {
+        mealBreakdownHTML = completedMeals.map(meal => {
+          // Show meal macros - the API already filters based on subscription
+          let mealMacros = `${Math.round(meal.nutrition.calories || 0)}cal, ${Math.round(meal.nutrition.protein || 0)}p`;
+          if (meal.nutrition.carbs !== null && meal.nutrition.fat !== null) {
+            mealMacros += `, ${Math.round(meal.nutrition.carbs)}c, ${Math.round(meal.nutrition.fat)}f`;
+          } else if (meal.nutrition.fat !== null) {
+            mealMacros += `, ${Math.round(meal.nutrition.fat)}f`;
+          }
+          
+          return `
+            <div class="nutrition-meal-item">
+              <div>
+                <div class="nutrition-meal-name">${meal.recipe_name || meal.meal_name || 'Custom meal'}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: capitalize;">${meal.meal_type}</div>
+              </div>
+              <div class="nutrition-meal-macros">
+                <div style="font-weight: 600; color: var(--primary-color);">${Math.round(meal.nutrition.calories || 0)} cal</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">${mealMacros}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        mealBreakdownHTML = '<div style="text-align: center; color: var(--text-muted); padding: 1rem;">No completed meals for this date</div>';
+      }
+
+      let contentHTML = `
+        <div class="nutrition-overview">
+          ${overviewStats}
         </div>
         
         <div class="nutrition-breakdown">
@@ -732,8 +807,8 @@ async function loadDailyNutritionSummary() {
               <div class="nutrition-meal-item">
                 <span class="nutrition-meal-name">Daily Target</span>
                 <div class="nutrition-meal-macros">
-                  <div style="font-weight: 600; color: var(--success-color);">Goal: ${userNutritionGoals?.daily_calories || 2000} cal</div>
-                  <div style="font-size: 0.7rem; color: var(--text-muted);">${userNutritionGoals?.daily_protein || 150}p/${userNutritionGoals?.daily_carbs || 250}c/${userNutritionGoals?.daily_fat || 70}f</div>
+                  <div style="font-weight: 600; color: var(--success-color);">Goal: ${goalDisplay}</div>
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">${macroTargets}</div>
                 </div>
               </div>
               <div class="nutrition-meal-item">
@@ -752,22 +827,26 @@ async function loadDailyNutritionSummary() {
               Meal Breakdown
             </div>
             <div class="nutrition-category-meals">
-              ${meals.map(meal => `
-                <div class="nutrition-meal-item">
-                  <div>
-                    <div class="nutrition-meal-name">${meal.meal_name}</div>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: capitalize;">${meal.meal_type}</div>
-                  </div>
-                  <div class="nutrition-meal-macros">
-                    <div style="font-weight: 600; color: var(--primary-color);">${Math.round(meal.nutrition.calories)} cal</div>
-                    <div style="font-size: 0.7rem; color: var(--text-muted);">${Math.round(meal.nutrition.protein)}p/${Math.round(meal.nutrition.carbs)}c/${Math.round(meal.nutrition.fat)}f</div>
-                  </div>
-                </div>
-              `).join('')}
+              ${mealBreakdownHTML}
             </div>
           </div>
         </div>
       `;
+      
+      // Add upgrade prompt for free users
+      if (isLimitedTier && upgradeMessage) {
+        contentHTML += `
+          <div style="text-align: center; padding: var(--spacing-md); background: var(--bg-secondary); border-radius: var(--radius-md); margin-top: var(--spacing-md); border: 1px dashed var(--border-light);">
+            <i class="fas fa-star" style="color: var(--primary-color); margin-bottom: var(--spacing-xs);"></i>
+            <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+              ${upgradeMessage}
+            </div>
+            <a href="/settings" style="color: var(--primary-color); text-decoration: none; font-weight: 600; font-size: 0.875rem;">
+              View Plans →
+            </a>
+          </div>
+        `;
+      }
       
       contentElement.innerHTML = contentHTML;
     } else {

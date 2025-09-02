@@ -123,7 +123,7 @@ def get_daily_nutrition_summary(date):
         return jsonify({"success": False, "message": "Not authenticated"})
     
     user_id = session["user_ID"]
-    
+        
     try:
         target_date = datetime.strptime(date, "%Y-%m-%d").date()
     except ValueError:
@@ -135,7 +135,7 @@ def get_daily_nutrition_summary(date):
     try:
         # Get all meals and nutrition for the specific date
         meals_query = """
-            SELECT m.meal_id, m.meal_type, rt.name as recipe_name,
+            SELECT m.meal_id, m.meal_type, rt.recipe_name as recipe_name,
                    mn.calories, mn.protein_g, mn.carbohydrates_g, mn.fat_g,
                    mn.fiber_g, mn.sodium_mg, mn.servings, mn.serving_size,
                    m.is_completed
@@ -152,9 +152,10 @@ def get_daily_nutrition_summary(date):
                     ELSE 5
                 END
         """
+                
         cursor.execute(meals_query, (user_id, target_date))
         meals_data = cursor.fetchall()
-        
+                
         # Calculate daily totals
         daily_totals = {
             "calories": 0,
