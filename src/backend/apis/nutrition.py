@@ -395,40 +395,42 @@ def get_nutrition_analytics():
         query = """
             SELECT 
                 m.meal_date,
-                COALESCE(SUM(rt.calories_per_serving * (rt.servings / GREATEST(rt.servings, 1))), 0) as daily_calories,
+                COALESCE(SUM(
+                    rt.calories_per_serving / GREATEST(rt.servings, 1)
+                ), 0) as daily_calories,
                 COALESCE(SUM(
                     CASE 
                         WHEN ti.ingredient_name REGEXP 'protein|chicken|beef|fish|egg|tofu|bean|lentil|quinoa' 
-                        THEN ti.quantity * 4 * 0.25  -- Rough protein calculation
+                        THEN (ti.quantity * 4 * 0.25) / GREATEST(rt.servings, 1)  -- Protein calculation per serving
                         ELSE 0 
                     END
                 ), 0) as daily_protein,
                 COALESCE(SUM(
                     CASE 
                         WHEN ti.ingredient_name REGEXP 'rice|bread|pasta|potato|flour|sugar|fruit'
-                        THEN ti.quantity * 4 * 0.6   -- Rough carb calculation
+                        THEN (ti.quantity * 4 * 0.6) / GREATEST(rt.servings, 1)   -- Carb calculation per serving
                         ELSE 0 
                     END
                 ), 0) as daily_carbs,
                 COALESCE(SUM(
                     CASE 
                         WHEN ti.ingredient_name REGEXP 'oil|butter|nuts|avocado|cheese|cream'
-                        THEN ti.quantity * 9 * 0.8   -- Rough fat calculation  
+                        THEN (ti.quantity * 9 * 0.8) / GREATEST(rt.servings, 1)   -- Fat calculation per serving
                         ELSE 0 
                     END
                 ), 0) as daily_fat,
                 COALESCE(SUM(
                     CASE 
                         WHEN ti.ingredient_name REGEXP 'vegetable|fruit|bean|grain|oat'
-                        THEN ti.quantity * 0.1       -- Rough fiber calculation
+                        THEN (ti.quantity * 0.1) / GREATEST(rt.servings, 1)       -- Fiber calculation per serving
                         ELSE 0 
                     END
                 ), 0) as daily_fiber,
                 COALESCE(SUM(
                     CASE 
                         WHEN ti.ingredient_name REGEXP 'salt|sauce|processed|canned'
-                        THEN 200  -- Rough sodium estimate per serving
-                        ELSE 50   -- Base sodium
+                        THEN 200 / GREATEST(rt.servings, 1)  -- Sodium estimate per serving
+                        ELSE 50 / GREATEST(rt.servings, 1)   -- Base sodium per serving
                     END
                 ), 0) as daily_sodium,
                 COUNT(DISTINCT m.meal_id) as meals_completed
