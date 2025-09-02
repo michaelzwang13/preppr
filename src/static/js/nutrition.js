@@ -405,10 +405,10 @@ function renderNutritionChart(chartData, goals, accessibleFields, isPremium) {
     nutritionChart.destroy();
   }
   
-  // Prepare datasets
+  // Prepare datasets - only show macros that are accessible
   const datasets = [];
   
-  // Always include calories and protein (free tier)
+  // Always include calories (available to all users)
   datasets.push({
     label: 'Calories',
     data: chartData.map(d => ({ x: d.date, y: d.calories })),
@@ -419,6 +419,7 @@ function renderNutritionChart(chartData, goals, accessibleFields, isPremium) {
     yAxisID: 'y-calories'
   });
   
+  // Always include protein (available to all users)  
   datasets.push({
     label: 'Protein (g)',
     data: chartData.map(d => ({ x: d.date, y: d.protein })),
@@ -429,8 +430,8 @@ function renderNutritionChart(chartData, goals, accessibleFields, isPremium) {
     yAxisID: 'y-macros'
   });
   
-  // Add premium fields if accessible
-  if (accessibleFields.fat) {
+  // Add premium-only fields if accessible and user is premium
+  if (accessibleFields.fat && isPremium) {
     datasets.push({
       label: 'Fat (g)',
       data: chartData.map(d => ({ x: d.date, y: d.fat || 0 })),
@@ -442,7 +443,7 @@ function renderNutritionChart(chartData, goals, accessibleFields, isPremium) {
     });
   }
   
-  if (accessibleFields.carbs) {
+  if (accessibleFields.carbs && isPremium) {
     datasets.push({
       label: 'Carbs (g)',
       data: chartData.map(d => ({ x: d.date, y: d.carbs || 0 })),
@@ -454,44 +455,13 @@ function renderNutritionChart(chartData, goals, accessibleFields, isPremium) {
     });
   }
   
-  if (accessibleFields.fiber) {
+  if (accessibleFields.fiber && isPremium) {
     datasets.push({
       label: 'Fiber (g)',
       data: chartData.map(d => ({ x: d.date, y: d.fiber || 0 })),
       borderColor: macroColors.fiber,
       backgroundColor: macroColors.fiber + '20',
       tension: 0.4,
-      fill: false,
-      yAxisID: 'y-macros'
-    });
-  }
-  
-  // Add goal lines as separate datasets
-  if (goals && goals.calories) {
-    datasets.push({
-      label: `Calories Goal (${goals.calories})`,
-      data: chartData.map(d => ({ x: d.date, y: goals.calories })),
-      borderColor: macroColors.calories,
-      backgroundColor: 'transparent',
-      borderDash: [5, 5],
-      borderWidth: 2,
-      pointRadius: 0,
-      tension: 0,
-      fill: false,
-      yAxisID: 'y-calories'
-    });
-  }
-  
-  if (goals && goals.protein && accessibleFields.protein) {
-    datasets.push({
-      label: `Protein Goal (${goals.protein}g)`,
-      data: chartData.map(d => ({ x: d.date, y: goals.protein })),
-      borderColor: macroColors.protein,
-      backgroundColor: 'transparent',
-      borderDash: [5, 5],
-      borderWidth: 2,
-      pointRadius: 0,
-      tension: 0,
       fill: false,
       yAxisID: 'y-macros'
     });
@@ -507,48 +477,6 @@ function renderNutritionChart(chartData, goals, accessibleFields, isPremium) {
       interaction: {
         mode: 'index',
         intersect: false,
-      },
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            usePointStyle: true,
-            padding: 15,
-            filter: function(legendItem) {
-              // Hide goal lines from legend to reduce clutter
-              return !legendItem.text.includes('Goal');
-            }
-          }
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false,
-          callbacks: {
-            title: function(tooltipItems) {
-              return new Date(tooltipItems[0].parsed.x).toLocaleDateString();
-            },
-            label: function(context) {
-              const label = context.dataset.label || '';
-              const value = Math.round(context.parsed.y * 10) / 10;
-              
-              if (label.includes('Goal')) {
-                return `${label}: ${value}`;
-              }
-              
-              // Show goal comparison for main metrics
-              const metric = label.toLowerCase().split(' ')[0];
-              let goalValue = null;
-              
-              if (goals && goals[metric]) {
-                goalValue = goals[metric];
-                const percentage = goalValue > 0 ? Math.round((value / goalValue) * 100) : 0;
-                return `${label}: ${value} (${percentage}% of goal)`;
-              }
-              
-              return `${label}: ${value}`;
-            }
-          }
-        }
       },
       scales: {
         x: {
@@ -578,7 +506,7 @@ function renderNutritionChart(chartData, goals, accessibleFields, isPremium) {
           },
           grid: {
             drawOnChartArea: false,
-          },
+          }
         },
         'y-macros': {
           type: 'linear',
@@ -594,7 +522,41 @@ function renderNutritionChart(chartData, goals, accessibleFields, isPremium) {
           },
           grid: {
             drawOnChartArea: true,
-          },
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 15
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            title: function(tooltipItems) {
+              return new Date(tooltipItems[0].parsed.x).toLocaleDateString();
+            },
+            label: function(context) {
+              const label = context.dataset.label || '';
+              const value = Math.round(context.parsed.y * 10) / 10;
+              
+              // Show goal comparison for main metrics
+              const metric = label.toLowerCase().split(' ')[0];
+              let goalValue = null;
+              
+              if (goals && goals[metric]) {
+                goalValue = goals[metric];
+                const percentage = goalValue > 0 ? Math.round((value / goalValue) * 100) : 0;
+                return `${label}: ${value} (${percentage}% of ${goalValue} goal)`;
+              }
+              
+              return `${label}: ${value}`;
+            },
+          }
         }
       }
     }
