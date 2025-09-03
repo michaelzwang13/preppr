@@ -820,8 +820,8 @@ async function loadDailyNutritionSummary() {
       
       if (completedMeals.length > 0) {
         mealBreakdownHTML = completedMeals.map(meal => {
-          // Show meal macros - the API already filters based on subscription
-          let mealMacros = `${Math.round(meal.nutrition.calories || 0)} calories, ${Math.round(meal.nutrition.protein || 0)}g protein`;
+          // Show meal macros - the API already filters based on subscription, exclude calories as it's shown separately
+          let mealMacros = `${Math.round(meal.nutrition.protein || 0)}g protein`;
           if (meal.nutrition.carbs !== null && meal.nutrition.fat !== null) {
             mealMacros += `, ${Math.round(meal.nutrition.carbs)}g carbs, ${Math.round(meal.nutrition.fat)}g fat`;
           } else if (meal.nutrition.fat !== null) {
@@ -832,15 +832,15 @@ async function loadDailyNutritionSummary() {
           }
           
           return `
-            <div class="nutrition-meal-item">
-              <div>
-                <div class="nutrition-meal-name">${meal.recipe_name || meal.meal_name || 'Custom meal'}</div>
-                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: capitalize;">${meal.meal_type}</div>
+            <div class="nutrition-meal-item" style="display: flex; flex-direction: column; width: 100%;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-bottom: 4px;">
+                <div style="flex: 1; min-width: 0;">
+                  <div class="nutrition-meal-name" style="font-weight: 500; line-height: 1.2; word-wrap: break-word;">${meal.recipe_name || meal.meal_name || 'Custom meal'}</div>
+                  <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: capitalize; margin-top: 2px;">${meal.meal_type}</div>
+                </div>
+                <div style="font-weight: 600; color: var(--primary-color); white-space: nowrap; margin-left: 8px;">${Math.round(meal.nutrition.calories || 0)} cal</div>
               </div>
-              <div class="nutrition-meal-macros">
-                <div style="font-weight: 600; color: var(--primary-color);">${Math.round(meal.nutrition.calories || 0)} cal</div>
-                <div style="font-size: 0.7rem; color: var(--text-muted);">${mealMacros}</div>
-              </div>
+              <div style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.2;">${mealMacros}</div>
             </div>
           `;
         }).join('');
