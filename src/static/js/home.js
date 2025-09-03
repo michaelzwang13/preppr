@@ -744,6 +744,15 @@ async function loadDailyNutritionSummary() {
         `;
       }
       
+      if (totals.sodium !== null && totals.sodium !== undefined) {
+        overviewStats += `
+          <div class="nutrition-stat">
+            <span class="nutrition-stat-value">${Math.round(totals.sodium)}<span class="nutrition-stat-unit">mg</span></span>
+            <span class="nutrition-stat-label">Sodium</span>
+          </div>
+        `;
+      }
+      
       // Build goal display respecting subscription tier
       const goalDisplay = userNutritionGoals ? 
         `${userNutritionGoals.daily_calories || 2000} cal` : '2000 cal';
@@ -754,11 +763,12 @@ async function loadDailyNutritionSummary() {
         const proteinGoal = userNutritionGoals.daily_protein || 150;
         const carbGoal = userNutritionGoals.daily_carbs || 250;
         const fatGoal = userNutritionGoals.daily_fat || 70;
-        macroTargets = `${proteinGoal}g protein / ${carbGoal}g carbs / ${fatGoal}g fat`;
+        const sodiumGoal = userNutritionGoals.daily_sodium || 2300;
+        macroTargets = `${proteinGoal}g protein / ${carbGoal}g carbs / ${fatGoal}g fat / ${sodiumGoal}mg sodium`;
       } else {
         // Show limited targets for free users
         const proteinGoal = userNutritionGoals?.daily_protein || 150;
-        macroTargets = `${proteinGoal}g protein / ? carbs / ? fat`;
+        macroTargets = `${proteinGoal}g protein / ? carbs / ? fat / ? sodium`;
       }
       
       // Build meal breakdown HTML
@@ -773,6 +783,9 @@ async function loadDailyNutritionSummary() {
             mealMacros += `, ${Math.round(meal.nutrition.carbs)}g carbs, ${Math.round(meal.nutrition.fat)}g fat`;
           } else if (meal.nutrition.fat !== null) {
             mealMacros += `, ${Math.round(meal.nutrition.fat)}g fat`;
+          }
+          if (meal.nutrition.sodium !== null && meal.nutrition.sodium !== undefined) {
+            mealMacros += `, ${Math.round(meal.nutrition.sodium)}mg sodium`;
           }
           
           return `

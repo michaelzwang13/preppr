@@ -11,16 +11,18 @@ meals_bp = Blueprint("meals", __name__, url_prefix="/api")
 def filter_nutrition_data_by_subscription(user_id, nutrition_data):
     """
     Filter nutrition data based on user's subscription tier.
-    Free tier: calories + protein only
-    Premium tier: all macro data
+    Free tier: calories, protein, fat
+    Premium tier: all macro data including carbs, fiber, sodium
     """
+    from src.subscription_utils import get_user_subscription_info
     subscription_info = get_user_subscription_info(user_id)
+    is_premium = subscription_info['tier'] == 'premium' and subscription_info['status'] == 'active'
     
-    if subscription_info['tier'] == 'premium':
+    if is_premium:
         # Premium users get full nutrition data
         return nutrition_data
     
-    # Free tier users only get calories and protein
+    # Free tier users get calories, protein, and fat
     filtered_data = {}
     
     # Always include these for free tier
@@ -28,10 +30,11 @@ def filter_nutrition_data_by_subscription(user_id, nutrition_data):
         filtered_data['calories'] = nutrition_data['calories']
     if 'protein' in nutrition_data:
         filtered_data['protein'] = nutrition_data['protein']
+    if 'fat' in nutrition_data:
+        filtered_data['fat'] = nutrition_data['fat']
     
-    # Hide other macros for free tier
+    # Hide premium-only macros for free tier
     filtered_data['carbs'] = None
-    filtered_data['fat'] = None
     filtered_data['fiber'] = None
     filtered_data['sodium'] = None
     
