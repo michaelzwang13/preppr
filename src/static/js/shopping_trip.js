@@ -702,8 +702,6 @@ function setupShoppingListEventListeners() {
 // Load available shopping lists
 async function loadAvailableLists() {
   try {
-    showNotification("Loading your shopping lists...", "info");
-
     const response = await fetch("/api/shopping-trip/available-lists");
     const data = await response.json();
 

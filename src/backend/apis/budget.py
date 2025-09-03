@@ -226,20 +226,69 @@ def get_spending_trends():
                         "amount": trend_data.get(date_str, 0.0),
                     }
                 )
-        else: # 1m, 3m, 1y
+        elif period == "1m":
+            # Last 30 days - weekly buckets (4-5 bars)
+            # Generate complete weekly range
+            now = datetime.now().date()
+            for week_offset in range(5):  # Show up to 5 weeks
+                # Calculate week start (Monday) going backwards
+                week_start = now - timedelta(days=now.weekday() + (week_offset * 7))
+                # Don't go more than 30 days back
+                if (now - week_start).days > 30:
+                    continue
+                    
+                week_start_str = week_start.strftime("%Y-%m-%d")
+                label = "Week of " + week_start.strftime("%b %d")
+                
+                formatted_trends.append({
+                    "date": week_start_str,
+                    "label": label,
+                    "amount": trend_data.get(week_start_str, 0.0),
+                })
+            
+            # Sort by date (oldest first)
+            formatted_trends.sort(key=lambda x: x["date"])
+            
+        elif period == "3m":
+            # Last 90 days - weekly buckets (12-13 bars)
+            # Generate complete weekly range
+            now = datetime.now().date()
+            for week_offset in range(13):  # Show up to 13 weeks
+                # Calculate week start (Monday) going backwards
+                week_start = now - timedelta(days=now.weekday() + (week_offset * 7))
+                # Don't go more than 90 days back
+                if (now - week_start).days > 90:
+                    continue
+                    
+                week_start_str = week_start.strftime("%Y-%m-%d")
+                label = "Week of " + week_start.strftime("%b %d")
+                
+                formatted_trends.append({
+                    "date": week_start_str,
+                    "label": label,
+                    "amount": trend_data.get(week_start_str, 0.0),
+                })
+            
+            # Sort by date (oldest first)
+            formatted_trends.sort(key=lambda x: x["date"])
+            
+        else: # 1y
+            # 1y period already handled in SQL with complete date range
             for date_str, amount in trend_data.items():
                 # Convert string to datetime object
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d")
 
-                # Format the label
-                label = "Week of " if period == "1m" else ""
-                label += date_obj.strftime('%b %d')
+                # Format the label for monthly data
+                label = date_obj.strftime('%b %Y')
 
                 formatted_trends.append({
                     "date": date_str,
                     "label": label,
                     "amount": amount,
                 })
+            
+            # Sort by date (oldest first)
+            formatted_trends.sort(key=lambda x: x["date"])
 
         cursor.close()
 
