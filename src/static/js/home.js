@@ -753,23 +753,66 @@ async function loadDailyNutritionSummary() {
         `;
       }
       
-      // Build goal display respecting subscription tier
-      const goalDisplay = userNutritionGoals ? 
-        `${userNutritionGoals.daily_calories || 2000} cal` : '2000 cal';
+      // Build goal and limit displays respecting subscription tier and type configuration
+      const caloriesValue = userNutritionGoals?.daily_calories || 2000;
+      const caloriesType = userNutritionGoals?.calories_type || 'goal';
       
-      let macroTargets = '';
+      let macroGoals = [];
+      let macroLimits = [];
+      
       if (!isLimitedTier && userNutritionGoals) {
-        // Show full macro targets for premium users
-        const proteinGoal = userNutritionGoals.daily_protein || 150;
-        const carbGoal = userNutritionGoals.daily_carbs || 250;
-        const fatGoal = userNutritionGoals.daily_fat || 70;
-        const sodiumGoal = userNutritionGoals.daily_sodium || 2300;
-        macroTargets = `${proteinGoal}g protein / ${carbGoal}g carbs / ${fatGoal}g fat / ${sodiumGoal}mg sodium`;
+        // Premium users - categorize by type
+        const nutrients = [
+          { name: 'calories', value: caloriesValue, type: caloriesType, unit: 'cal' },
+          { name: 'protein', value: userNutritionGoals.daily_protein, type: userNutritionGoals.protein_type, unit: 'g' },
+          { name: 'carbs', value: userNutritionGoals.daily_carbs, type: userNutritionGoals.carbs_type, unit: 'g' },
+          { name: 'fat', value: userNutritionGoals.daily_fat, type: userNutritionGoals.fat_type, unit: 'g' },
+          { name: 'fiber', value: userNutritionGoals.daily_fiber, type: userNutritionGoals.fiber_type, unit: 'g' },
+          { name: 'sodium', value: userNutritionGoals.daily_sodium, type: userNutritionGoals.sodium_type, unit: 'mg' }
+        ];
+        
+        nutrients.forEach(nutrient => {
+          if (nutrient.value !== undefined && nutrient.value !== null) {
+            const display = `${nutrient.value}${nutrient.unit} ${nutrient.name}`;
+            if (nutrient.type === 'limit') {
+              macroLimits.push(display);
+            } else {
+              macroGoals.push(display);
+            }
+          }
+        });
       } else {
-        // Show limited targets for free users
-        const proteinGoal = userNutritionGoals?.daily_protein || 150;
-        macroTargets = `${proteinGoal}g protein / ? carbs / ? fat / ? sodium`;
+        // Free users - categorize based on accessible fields
+        const proteinValue = userNutritionGoals?.daily_protein || 150;
+        const proteinType = userNutritionGoals?.protein_type || 'goal';
+        const fatValue = userNutritionGoals?.daily_fat || 70;
+        const fatType = userNutritionGoals?.fat_type || 'goal';
+        
+        // Always show accessible fields based on their type
+        if (caloriesType === 'limit') {
+          macroLimits.push(`${caloriesValue}cal calories`);
+        } else {
+          macroGoals.push(`${caloriesValue}cal calories`);
+        }
+        
+        if (proteinType === 'limit') {
+          macroLimits.push(`${proteinValue}g protein`);
+        } else {
+          macroGoals.push(`${proteinValue}g protein`);
+        }
+        
+        if (fatType === 'limit') {
+          macroLimits.push(`${fatValue}g fat`);
+        } else {
+          macroGoals.push(`${fatValue}g fat`);
+        }
+        
+        // Show upgrade prompts for premium fields
+        macroLimits.push('? carbs (upgrade)', '? fiber (upgrade)', '? sodium (upgrade)');
       }
+      
+      const macroGoalsDisplay = macroGoals.length > 0 ? macroGoals.join(' / ') : 'No goals set';
+      const macroLimitsDisplay = macroLimits.length > 0 ? macroLimits.join(' / ') : 'No limits set';
       
       // Build meal breakdown HTML
       let mealBreakdownHTML = '';
@@ -810,28 +853,50 @@ async function loadDailyNutritionSummary() {
           ${overviewStats}
         </div>
         
-        <div class="nutrition-breakdown">
-          <div class="nutrition-category">
-            <div class="nutrition-category-title">
-              <i class="fas fa-dumbbell"></i>
-              Macronutrients
-            </div>
-            <div class="nutrition-category-meals">
-              <div class="nutrition-meal-item">
-                <span class="nutrition-meal-name">Daily Target</span>
-                <div class="nutrition-meal-macros">
-                  <div style="font-weight: 600; color: var(--success-color);">Goal: ${goalDisplay}</div>
-                  <div style="font-size: 0.7rem; color: var(--text-muted);">${macroTargets}</div>
+        <div class="nutrition-breakdown" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg); align-items: start;">
+          <div class="nutrition-goals-limits-stack" style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+            ${macroGoals.length > 0 ? `
+            <div class="nutrition-category">
+              <div class="nutrition-category-title">
+                <i class="fas fa-target"></i>
+                Goals
+              </div>
+              <div class="nutrition-category-meals">
+                <div class="nutrition-meal-item">
+                  <span class="nutrition-meal-name">Daily Targets</span>
+                  <div class="nutrition-meal-macros">
+                    <div style="font-weight: 600; color: var(--success-color);">Goals to Reach</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">${macroGoalsDisplay}</div>
+                  </div>
+                </div>
+                <div class="nutrition-meal-item">
+                  <span class="nutrition-meal-name">Progress</span>
+                  <div class="nutrition-meal-macros">
+                    <div style="font-weight: 600; color: var(--primary-color);">${Math.round((totals.calories / caloriesValue) * 100)}% calories</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">${Math.round(totals.calories || 0)} / ${caloriesValue} cal consumed</div>
+                  </div>
                 </div>
               </div>
-              <div class="nutrition-meal-item">
-                <span class="nutrition-meal-name">Progress</span>
-                <div class="nutrition-meal-macros">
-                  <div style="font-weight: 600; color: var(--primary-color);">${Math.round((totals.calories / (userNutritionGoals?.daily_calories || 2000)) * 100)}% complete</div>
-                  <div style="font-size: 0.7rem; color: var(--text-muted);">Calories consumed</div>
+            </div>
+            ` : ''}
+            
+            ${macroLimits.length > 0 ? `
+            <div class="nutrition-category">
+              <div class="nutrition-category-title">
+                <i class="fas fa-exclamation-triangle"></i>
+                Limits
+              </div>
+              <div class="nutrition-category-meals">
+                <div class="nutrition-meal-item">
+                  <span class="nutrition-meal-name">Daily Maximums</span>
+                  <div class="nutrition-meal-macros">
+                    <div style="font-weight: 600; color: var(--warning-color);">Stay Under</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">${macroLimitsDisplay}</div>
+                  </div>
                 </div>
               </div>
             </div>
+            ` : ''}
           </div>
           
           <div class="nutrition-category">
