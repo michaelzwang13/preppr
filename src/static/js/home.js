@@ -754,11 +754,11 @@ async function loadDailyNutritionSummary() {
         const proteinGoal = userNutritionGoals.daily_protein || 150;
         const carbGoal = userNutritionGoals.daily_carbs || 250;
         const fatGoal = userNutritionGoals.daily_fat || 70;
-        macroTargets = `${proteinGoal}p/${carbGoal}c/${fatGoal}f`;
+        macroTargets = `${proteinGoal}g protein / ${carbGoal}g carbs / ${fatGoal}g fat`;
       } else {
         // Show limited targets for free users
         const proteinGoal = userNutritionGoals?.daily_protein || 150;
-        macroTargets = `${proteinGoal}p/? c/? f`;
+        macroTargets = `${proteinGoal}g protein / ? carbs / ? fat`;
       }
       
       // Build meal breakdown HTML
@@ -768,11 +768,11 @@ async function loadDailyNutritionSummary() {
       if (completedMeals.length > 0) {
         mealBreakdownHTML = completedMeals.map(meal => {
           // Show meal macros - the API already filters based on subscription
-          let mealMacros = `${Math.round(meal.nutrition.calories || 0)}cal, ${Math.round(meal.nutrition.protein || 0)}p`;
+          let mealMacros = `${Math.round(meal.nutrition.calories || 0)} calories, ${Math.round(meal.nutrition.protein || 0)}g protein`;
           if (meal.nutrition.carbs !== null && meal.nutrition.fat !== null) {
-            mealMacros += `, ${Math.round(meal.nutrition.carbs)}c, ${Math.round(meal.nutrition.fat)}f`;
+            mealMacros += `, ${Math.round(meal.nutrition.carbs)}g carbs, ${Math.round(meal.nutrition.fat)}g fat`;
           } else if (meal.nutrition.fat !== null) {
-            mealMacros += `, ${Math.round(meal.nutrition.fat)}f`;
+            mealMacros += `, ${Math.round(meal.nutrition.fat)}g fat`;
           }
           
           return `
