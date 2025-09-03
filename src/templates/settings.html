@@ -283,6 +283,17 @@
         outline-offset: 2px;
       }
 
+      /* Remove borders/outlines when clicked for navigation links */
+      .nav-link:active,
+      .nav-link:focus {
+        outline: none;
+        border: none;
+      }
+
+      .nav-link {
+        border: none !important;
+      }
+
       /* Toggle Switch Styles */
       .toggle-switch {
         position: relative;

@@ -37,6 +37,10 @@
         min-height: 100vh;
       }
 
+      .nav-links {
+        gap: var(--spacing-xl);
+      }
+
       .nav-link {
         padding: 0 !important;
         border-radius: 0 !important;
@@ -443,6 +447,17 @@
       .form-input:focus {
         outline: 2px solid var(--primary-color);
         outline-offset: 2px;
+      }
+
+      /* Remove borders/outlines when clicked for navigation links */
+      .nav-link:active,
+      .nav-link:focus {
+        outline: none;
+        border: none;
+      }
+
+      .nav-link {
+        border: none !important;
       }
     </style>
   </head>
