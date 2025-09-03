@@ -296,6 +296,7 @@ async function toggleMealCompletion(
 }
 
 async function showMealDetails(mealId) {
+  console.log(mealId)
   try {
     const response = await fetch(`/api/meals/${mealId}`);
     const data = await response.json();
@@ -314,7 +315,7 @@ async function showMealDetails(mealId) {
 }
 
 function displayMealDetailsModal(meal) {
-  console.log("displaying meal details modal")
+  console.log("displaying meal details modal");
   const modalHTML = `
     <div id="mealDetailsModal" class="modal-overlay">
         <div class="modal-content meal-details-modal ${meal.type}">
@@ -367,12 +368,18 @@ function displayMealDetailsModal(meal) {
                     : ""
                 }
             </div>
-            ${window.NUTRITION_TRACKING_ENABLED ? `
+
+            ${
+              window.NUTRITION_TRACKING_ENABLED
+                ? `
             <div class="meal-nutrition-section" id="mealNutritionSection-${meal.meal_id}">
                 <h4><i class="fas fa-chart-bar"></i> Nutrition Information</h4>
                 <div class="nutrition-loading" style="color: var(--text-muted); font-style: italic;">Loading nutrition data...</div>
             </div>
-            ` : ''}
+            `
+                : ""
+            }
+
             ${
               meal.ingredients && meal.ingredients.length > 0
                 ? `
@@ -388,13 +395,15 @@ function displayMealDetailsModal(meal) {
                         <span class="ingredient-name">${
                           ingredient.ingredient_name
                         }${
-                          ingredient.notes
-                            ? ` (${ingredient.notes})`
-                            : ""
+                          ingredient.notes ? ` (${ingredient.notes})` : ""
                         }</span>
-                        <span class="ingredient-amount">${
-                          convertToMixedFraction(ingredient.quantity)
-                        } ${ingredient.unit === 'pcs' || ingredient.unit === 'pc' ? '' : ingredient.unit}</span>
+                        <span class="ingredient-amount">${convertToMixedFraction(
+                          ingredient.quantity
+                        )} ${
+                          ingredient.unit === "pcs" || ingredient.unit === "pc"
+                            ? ""
+                            : ingredient.unit
+                        }</span>
                     </div>
                     `
                       )
@@ -404,6 +413,7 @@ function displayMealDetailsModal(meal) {
             `
                 : ""
             }
+
             ${
               meal.instructions
                 ? `
@@ -417,6 +427,7 @@ function displayMealDetailsModal(meal) {
             `
                 : ""
             }
+
             ${
               meal.notes
                 ? `
@@ -439,7 +450,9 @@ function displayMealDetailsModal(meal) {
             `
                 : ""
             }
-            <button class="btn btn-secondary" onclick="saveRecipeFromMeal(${meal.meal_id}, '${meal.name}')">
+            <button class="btn btn-secondary" onclick="saveRecipeFromMeal(${
+              meal.meal_id
+            }, '${meal.name}')">
                 <i class="fas fa-bookmark"></i> Save Recipe
             </button>
             <button class="btn btn-primary" onclick="editMeal(${meal.meal_id})">
@@ -450,7 +463,9 @@ function displayMealDetailsModal(meal) {
         </div>
     </div>
     `;
+
   document.body.insertAdjacentHTML("beforeend", modalHTML);
+
   // Show modal with animation
   setTimeout(() => {
     document.getElementById("mealDetailsModal").classList.add("show");
@@ -539,9 +554,113 @@ function editMeal(mealId) {
   alert(`Meal editing functionality will be implemented for meal ID: ${mealId}`);
 }
 
-function loadMealNutritionForDetails(mealId) {
-  // Placeholder for nutrition loading functionality
-  console.log(`Loading nutrition data for meal ${mealId}`);
+async function loadMealNutritionForDetails(mealId) {
+  try {
+    const response = await fetch(`/api/nutrition/${mealId}`);
+    const data = await response.json();
+
+    const nutritionSection = document.getElementById(
+      `mealNutritionSection-${mealId}`
+    );
+    if (!nutritionSection) return;
+
+    if (data.success && data.nutrition) {
+      const nutrition = data.nutrition;
+
+      let nutritionHTML =
+        '<h4><i class="fas fa-chart-bar"></i> Nutrition Information</h4>';
+      nutritionHTML += '<div class="nutrition-details-grid">';
+
+      // Main macros
+      if (nutrition.calories) {
+        nutritionHTML += `<div class="nutrition-detail-item">
+          <span class="nutrition-label">Calories</span>
+          <span class="nutrition-value">${Math.round(nutrition.calories)}</span>
+        </div>`;
+      }
+
+      if (nutrition.macros.protein) {
+        nutritionHTML += `<div class="nutrition-detail-item">
+          <span class="nutrition-label">Protein</span>
+          <span class="nutrition-value">${Math.round(
+            nutrition.macros.protein
+          )}g</span>
+        </div>`;
+      }
+
+      if (nutrition.macros.carbs) {
+        nutritionHTML += `<div class="nutrition-detail-item">
+          <span class="nutrition-label">Carbohydrates</span>
+          <span class="nutrition-value">${Math.round(
+            nutrition.macros.carbs
+          )}g</span>
+        </div>`;
+      }
+
+      if (nutrition.macros.fat) {
+        nutritionHTML += `<div class="nutrition-detail-item">
+          <span class="nutrition-label">Fat</span>
+          <span class="nutrition-value">${Math.round(
+            nutrition.macros.fat
+          )}g</span>
+        </div>`;
+      }
+
+      if (nutrition.macros.fiber) {
+        nutritionHTML += `<div class="nutrition-detail-item">
+          <span class="nutrition-label">Fiber</span>
+          <span class="nutrition-value">${Math.round(
+            nutrition.macros.fiber
+          )}g</span>
+        </div>`;
+      }
+
+      if (nutrition.macros.sodium) {
+        nutritionHTML += `<div class="nutrition-detail-item">
+          <span class="nutrition-label">Sodium</span>
+          <span class="nutrition-value">${Math.round(
+            nutrition.macros.sodium
+          )}mg</span>
+        </div>`;
+      }
+
+      nutritionHTML += "</div>";
+
+      // Add serving info if available
+      if (nutrition.servings || nutrition.serving_size) {
+        nutritionHTML += '<div class="nutrition-serving-info">';
+        if (nutrition.servings) {
+          nutritionHTML += `<span class="serving-info">Servings: ${nutrition.servings}</span>`;
+        }
+        if (nutrition.serving_size) {
+          nutritionHTML += `<span class="serving-info">Serving Size: ${nutrition.serving_size}</span>`;
+        }
+        nutritionHTML += "</div>";
+      }
+
+      nutritionSection.innerHTML = nutritionHTML;
+    } else {
+      nutritionSection.innerHTML = `
+        <h4><i class="fas fa-chart-bar"></i> Nutrition Information</h4>
+        <div style="color: var(--text-muted); font-style: italic; padding: 1rem 0;">
+          No nutrition data available for this meal.
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error("Failed to load nutrition for details:", error);
+    const nutritionSection = document.getElementById(
+      `mealNutritionSection-${mealId}`
+    );
+    if (nutritionSection) {
+      nutritionSection.innerHTML = `
+        <h4><i class="fas fa-chart-bar"></i> Nutrition Information</h4>
+        <div style="color: var(--error-color); font-style: italic; padding: 1rem 0;">
+          Failed to load nutrition data.
+        </div>
+      `;
+    }
+  }
 }
 
 // Weekly Meals Progress Wheel Functionality

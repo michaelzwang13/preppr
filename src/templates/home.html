@@ -1685,6 +1685,57 @@
         min-width: 70px;
       }
     }
+
+    /* Nutrition Details CSS from meal plan details */
+    .nutrition-details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-md);
+    }
+    
+    .nutrition-detail-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .nutrition-label {
+      font-weight: 500;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    
+    .nutrition-value {
+      font-weight: 600;
+      color: var(--primary-color);
+      font-size: 0.875rem;
+    }
+    
+    .nutrition-serving-info {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+      padding-top: var(--spacing-sm);
+      border-top: 1px solid var(--border-light);
+      font-size: 0.8rem;
+    }
+    
+    .serving-info {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* Mobile responsive for nutrition details */
+    @media (max-width: 768px) {
+      .nutrition-details-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1833,7 +1884,8 @@ window.HOME_CONFIG = {
     }
 };
 // Nutrition tracking flag
-window.NUTRITION_TRACKING_ENABLED = {{ 'true' if nutrition_tracking_enabled else 'false' }};
+window.NUTRITION_TRACKING_ENABLED = JSON.parse('{{ nutrition_tracking_enabled | tojson }}');
+
 </script>
 <script src="{{ url_for('static', filename='js/home.js') }}"></script>
 
