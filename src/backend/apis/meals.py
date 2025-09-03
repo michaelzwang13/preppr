@@ -286,7 +286,13 @@ def generate_meal_plan():
     cooking_time = data.get("cooking_time", 60)
     minimal_cooking_sessions = data.get("minimal_cooking_sessions", False)
     selected_meals = data.get("selected_meals", None)  # New parameter for meal selection
-    nutrition_tracking_enabled = True
+    # Check if user is premium for enhanced nutrition tracking
+    from src.subscription_utils import get_user_subscription_info
+    subscription_info = get_user_subscription_info(user_id)
+    is_premium = subscription_info['tier'] == 'premium' and subscription_info['status'] == 'active'
+    
+    # Enhanced nutrition tracking (including fiber/sodium) for premium users only
+    nutrition_tracking_enabled = is_premium
 
     try:
         days = int(days)
@@ -417,9 +423,14 @@ def generate_meal_plan():
         ))
         session_id = cursor.lastrowid
 
-        # Check if nutrition tracking is enabled for this user
+        # Check if nutrition tracking is enabled for this user (requires premium for fiber/sodium)
         from src.backend.views.shopping import get_user_preference
-        nutrition_tracking_enabled = get_user_preference(user_id, "nutrition_tracking_enabled", True)
+        from src.subscription_utils import get_user_subscription_info
+        subscription_info = get_user_subscription_info(user_id)
+        is_premium = subscription_info['tier'] == 'premium' and subscription_info['status'] == 'active'
+        
+        # Enhanced nutrition tracking (including fiber/sodium) for premium users only
+        nutrition_tracking_enabled = is_premium and get_user_preference(user_id, "nutrition_tracking_enabled", True)
         
         # Process each day and create individual meals
         created_meals = []

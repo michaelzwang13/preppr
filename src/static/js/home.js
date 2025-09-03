@@ -744,6 +744,15 @@ async function loadDailyNutritionSummary() {
         `;
       }
       
+      if (totals.fiber !== null && totals.fiber !== undefined) {
+        overviewStats += `
+          <div class="nutrition-stat">
+            <span class="nutrition-stat-value">${Math.round(totals.fiber)}<span class="nutrition-stat-unit">g</span></span>
+            <span class="nutrition-stat-label">Fiber</span>
+          </div>
+        `;
+      }
+      
       if (totals.sodium !== null && totals.sodium !== undefined) {
         overviewStats += `
           <div class="nutrition-stat">
@@ -826,6 +835,9 @@ async function loadDailyNutritionSummary() {
             mealMacros += `, ${Math.round(meal.nutrition.carbs)}g carbs, ${Math.round(meal.nutrition.fat)}g fat`;
           } else if (meal.nutrition.fat !== null) {
             mealMacros += `, ${Math.round(meal.nutrition.fat)}g fat`;
+          }
+          if (meal.nutrition.fiber !== null && meal.nutrition.fiber !== undefined) {
+            mealMacros += `, ${Math.round(meal.nutrition.fiber)}g fiber`;
           }
           if (meal.nutrition.sodium !== null && meal.nutrition.sodium !== undefined) {
             mealMacros += `, ${Math.round(meal.nutrition.sodium)}mg sodium`;
