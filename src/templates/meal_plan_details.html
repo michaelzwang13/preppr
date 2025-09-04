@@ -16,6 +16,9 @@
       rel="stylesheet"
     />
 
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/preppr-logo.ico') }}">
+
     <!-- Base CSS -->
     <link
       rel="stylesheet"
@@ -1597,6 +1600,7 @@
         nutritionTrackingEnabled: JSON.parse('{{ nutrition_tracking_enabled | tojson }}'),
       };
     </script>
+    <script src="{{ url_for('static', filename='js/meal_modal.js') }}"></script>
     <script src="{{ url_for('static', filename='js/meal_plan_details.js') }}"></script>
   </body>
 </html>

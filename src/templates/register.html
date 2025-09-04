@@ -16,6 +16,9 @@
       rel="stylesheet"
     />
 
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/preppr-logo.ico') }}">
+
     <!-- Font Awesome for icons -->
     <link
       rel="stylesheet"
@@ -32,6 +35,10 @@
       body {
         background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
         min-height: 100vh;
+      }
+
+      .nav-links {
+        gap: var(--spacing-xl);
       }
 
       .nav-link {
@@ -440,6 +447,17 @@
       .form-input:focus {
         outline: 2px solid var(--primary-color);
         outline-offset: 2px;
+      }
+
+      /* Remove borders/outlines when clicked for navigation links */
+      .nav-link:active,
+      .nav-link:focus {
+        outline: none;
+        border: none;
+      }
+
+      .nav-link {
+        border: none !important;
       }
     </style>
   </head>

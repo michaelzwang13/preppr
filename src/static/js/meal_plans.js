@@ -2053,6 +2053,8 @@ async function showMealDetails(meal) {
   // Close meal selection modal if it exists
   closeMealSelectionModal();
 
+  console.log(meal.meal_id)
+
   try {
     // Fetch detailed meal information
     const response = await fetch(`/api/meals/${meal.meal_id}`);

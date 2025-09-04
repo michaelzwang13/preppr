@@ -273,6 +273,16 @@ async function toggleMealCompletion(
       if (typeof loadWeeklyProgress === "function") {
         loadWeeklyProgress();
       }
+      
+      // Update daily nutrition if nutrition tracking is enabled and meal date is today
+      if (window.NUTRITION_TRACKING_ENABLED && mealDate) {
+        const today = new Date().toISOString().split('T')[0];
+        const mealDateFormatted = new Date(mealDate).toISOString().split('T')[0];
+        
+        if (mealDateFormatted === today && typeof loadDailyNutritionSummary === "function") {
+          loadDailyNutritionSummary();
+        }
+      }
     } else {
       // Revert checkbox on error
       checkbox.checked = !isCompleted;
@@ -286,6 +296,7 @@ async function toggleMealCompletion(
 }
 
 async function showMealDetails(mealId) {
+  console.log(mealId)
   try {
     const response = await fetch(`/api/meals/${mealId}`);
     const data = await response.json();
@@ -304,7 +315,7 @@ async function showMealDetails(mealId) {
 }
 
 function displayMealDetailsModal(meal) {
-  console.log("displaying meal details modal")
+  console.log("displaying meal details modal");
   const modalHTML = `
     <div id="mealDetailsModal" class="modal-overlay">
         <div class="modal-content meal-details-modal ${meal.type}">
@@ -357,12 +368,18 @@ function displayMealDetailsModal(meal) {
                     : ""
                 }
             </div>
-            ${window.NUTRITION_TRACKING_ENABLED ? `
+
+            ${
+              window.NUTRITION_TRACKING_ENABLED
+                ? `
             <div class="meal-nutrition-section" id="mealNutritionSection-${meal.meal_id}">
                 <h4><i class="fas fa-chart-bar"></i> Nutrition Information</h4>
                 <div class="nutrition-loading" style="color: var(--text-muted); font-style: italic;">Loading nutrition data...</div>
             </div>
-            ` : ''}
+            `
+                : ""
+            }
+
             ${
               meal.ingredients && meal.ingredients.length > 0
                 ? `
@@ -378,13 +395,15 @@ function displayMealDetailsModal(meal) {
                         <span class="ingredient-name">${
                           ingredient.ingredient_name
                         }${
-                          ingredient.notes
-                            ? ` (${ingredient.notes})`
-                            : ""
+                          ingredient.notes ? ` (${ingredient.notes})` : ""
                         }</span>
-                        <span class="ingredient-amount">${
-                          convertToMixedFraction(ingredient.quantity)
-                        } ${ingredient.unit === 'pcs' || ingredient.unit === 'pc' ? '' : ingredient.unit}</span>
+                        <span class="ingredient-amount">${convertToMixedFraction(
+                          ingredient.quantity
+                        )} ${
+                          ingredient.unit === "pcs" || ingredient.unit === "pc"
+                            ? ""
+                            : ingredient.unit
+                        }</span>
                     </div>
                     `
                       )
@@ -394,6 +413,7 @@ function displayMealDetailsModal(meal) {
             `
                 : ""
             }
+
             ${
               meal.instructions
                 ? `
@@ -407,6 +427,7 @@ function displayMealDetailsModal(meal) {
             `
                 : ""
             }
+
             ${
               meal.notes
                 ? `
@@ -429,7 +450,9 @@ function displayMealDetailsModal(meal) {
             `
                 : ""
             }
-            <button class="btn btn-secondary" onclick="saveRecipeFromMeal(${meal.meal_id}, '${meal.name}')">
+            <button class="btn btn-secondary" onclick="saveRecipeFromMeal(${
+              meal.meal_id
+            }, '${meal.name}')">
                 <i class="fas fa-bookmark"></i> Save Recipe
             </button>
             <button class="btn btn-primary" onclick="editMeal(${meal.meal_id})">
@@ -440,7 +463,9 @@ function displayMealDetailsModal(meal) {
         </div>
     </div>
     `;
+
   document.body.insertAdjacentHTML("beforeend", modalHTML);
+
   // Show modal with animation
   setTimeout(() => {
     document.getElementById("mealDetailsModal").classList.add("show");
@@ -461,57 +486,7 @@ function closeMealDetailsModal() {
   }
 }
 
-function convertToMixedFraction(decimal) {
-  if (!decimal || decimal === 0) return '0';
-  
-  const num = parseFloat(decimal);
-  const wholeNumber = Math.floor(num);
-  const fractionalPart = num - wholeNumber;
-  
-  // If no fractional part, return whole number
-  if (fractionalPart === 0) {
-    return wholeNumber.toString();
-  }
-  
-  // Round to nearest common fraction
-  let fraction = '';
-  const tolerance = 0.04; // Tolerance for rounding
-  
-  // Check for halves
-  if (Math.abs(fractionalPart - 0.5) < tolerance) {
-    fraction = '1/2';
-  }
-  // Check for quarters
-  else if (Math.abs(fractionalPart - 0.25) < tolerance) {
-    fraction = '1/4';
-  }
-  else if (Math.abs(fractionalPart - 0.75) < tolerance) {
-    fraction = '3/4';
-  }
-  // Check for thirds
-  else if (Math.abs(fractionalPart - 0.333) < tolerance || Math.abs(fractionalPart - 0.33) < tolerance) {
-    fraction = '1/3';
-  }
-  else if (Math.abs(fractionalPart - 0.667) < tolerance || Math.abs(fractionalPart - 0.66) < tolerance) {
-    fraction = '2/3';
-  }
-  // If doesn't match common fractions, round to nearest quarter
-  else {
-    const rounded = Math.round(fractionalPart * 4) / 4;
-    if (rounded === 0.25) fraction = '1/4';
-    else if (rounded === 0.5) fraction = '1/2';
-    else if (rounded === 0.75) fraction = '3/4';
-    else if (rounded === 0) return wholeNumber.toString();
-    else if (rounded === 1) return (wholeNumber + 1).toString();
-  }
-  
-  // Return formatted result
-  if (wholeNumber === 0) {
-    return fraction;
-  } else {
-    return `${wholeNumber} ${fraction}`;
-  }
-}
+// convertToMixedFraction is now in meal_modal.js
 
 // Helper functions for meal modal actions
 function viewPlanDetails(sessionId) {
@@ -529,10 +504,7 @@ function editMeal(mealId) {
   alert(`Meal editing functionality will be implemented for meal ID: ${mealId}`);
 }
 
-function loadMealNutritionForDetails(mealId) {
-  // Placeholder for nutrition loading functionality
-  console.log(`Loading nutrition data for meal ${mealId}`);
-}
+// loadMealNutritionForDetails is now in meal_modal.js
 
 // Weekly Meals Progress Wheel Functionality
 async function loadWeeklyProgress() {
@@ -691,7 +663,6 @@ async function loadDailyNutritionSummary() {
     if (currentDateElement) {
       currentDateElement.textContent = dateDisplay;
     }
-    
     const response = await fetch(`/api/nutrition/daily/${dateString}`);
     const data = await response.json();
     
@@ -701,49 +672,205 @@ async function loadDailyNutritionSummary() {
     if (data.success) {
       const totals = data.daily_totals;
       const meals = data.meals;
+      const isLimitedTier = data._limited_tier || false;
+      const upgradeMessage = data._upgrade_message;
       
-      let contentHTML = `
-        <div class="nutrition-overview">
-          <div class="nutrition-stat">
-            <span class="nutrition-stat-value">${Math.round(totals.calories)}</span>
-            <span class="nutrition-stat-label">Calories</span>
-          </div>
-          <div class="nutrition-stat">
-            <span class="nutrition-stat-value">${Math.round(totals.protein)}<span class="nutrition-stat-unit">g</span></span>
-            <span class="nutrition-stat-label">Protein</span>
-          </div>
-          <div class="nutrition-stat">
-            <span class="nutrition-stat-value">${Math.round(totals.carbs)}<span class="nutrition-stat-unit">g</span></span>
-            <span class="nutrition-stat-label">Carbs</span>
-          </div>
+      // Build nutrition overview stats - only show non-null values
+      let overviewStats = `
+        <div class="nutrition-stat">
+          <span class="nutrition-stat-value">${Math.round(totals.calories || 0)}</span>
+          <span class="nutrition-stat-label">Calories</span>
+        </div>
+        <div class="nutrition-stat">
+          <span class="nutrition-stat-value">${Math.round(totals.protein || 0)}<span class="nutrition-stat-unit">g</span></span>
+          <span class="nutrition-stat-label">Protein</span>
+        </div>
+      `;
+      
+      // Add premium fields only if they are not null (premium users)
+      if (totals.fat !== null && totals.fat !== undefined) {
+        overviewStats += `
           <div class="nutrition-stat">
             <span class="nutrition-stat-value">${Math.round(totals.fat)}<span class="nutrition-stat-unit">g</span></span>
             <span class="nutrition-stat-label">Fat</span>
           </div>
+        `;
+      }
+      
+      if (totals.carbs !== null && totals.carbs !== undefined) {
+        overviewStats += `
+          <div class="nutrition-stat">
+            <span class="nutrition-stat-value">${Math.round(totals.carbs)}<span class="nutrition-stat-unit">g</span></span>
+            <span class="nutrition-stat-label">Carbs</span>
+          </div>
+        `;
+      }
+      
+      if (totals.fiber !== null && totals.fiber !== undefined) {
+        overviewStats += `
+          <div class="nutrition-stat">
+            <span class="nutrition-stat-value">${Math.round(totals.fiber)}<span class="nutrition-stat-unit">g</span></span>
+            <span class="nutrition-stat-label">Fiber</span>
+          </div>
+        `;
+      }
+      
+      if (totals.sodium !== null && totals.sodium !== undefined) {
+        overviewStats += `
+          <div class="nutrition-stat">
+            <span class="nutrition-stat-value">${Math.round(totals.sodium)}<span class="nutrition-stat-unit">mg</span></span>
+            <span class="nutrition-stat-label">Sodium</span>
+          </div>
+        `;
+      }
+      
+      // Build goal and limit displays respecting subscription tier and type configuration
+      const caloriesValue = userNutritionGoals?.daily_calories || 2000;
+      const caloriesType = userNutritionGoals?.calories_type || 'goal';
+      
+      let macroGoals = [];
+      let macroLimits = [];
+      
+      if (!isLimitedTier && userNutritionGoals) {
+        // Premium users - categorize by type
+        const nutrients = [
+          { name: 'calories', value: caloriesValue, type: caloriesType, unit: 'cal' },
+          { name: 'protein', value: userNutritionGoals.daily_protein, type: userNutritionGoals.protein_type, unit: 'g' },
+          { name: 'carbs', value: userNutritionGoals.daily_carbs, type: userNutritionGoals.carbs_type, unit: 'g' },
+          { name: 'fat', value: userNutritionGoals.daily_fat, type: userNutritionGoals.fat_type, unit: 'g' },
+          { name: 'fiber', value: userNutritionGoals.daily_fiber, type: userNutritionGoals.fiber_type, unit: 'g' },
+          { name: 'sodium', value: userNutritionGoals.daily_sodium, type: userNutritionGoals.sodium_type, unit: 'mg' }
+        ];
+        
+        nutrients.forEach(nutrient => {
+          if (nutrient.value !== undefined && nutrient.value !== null) {
+            const display = `${nutrient.value}${nutrient.unit} ${nutrient.name}`;
+            if (nutrient.type === 'limit') {
+              macroLimits.push(display);
+            } else {
+              macroGoals.push(display);
+            }
+          }
+        });
+      } else {
+        // Free users - categorize based on accessible fields
+        const proteinValue = userNutritionGoals?.daily_protein || 150;
+        const proteinType = userNutritionGoals?.protein_type || 'goal';
+        const fatValue = userNutritionGoals?.daily_fat || 70;
+        const fatType = userNutritionGoals?.fat_type || 'goal';
+        
+        // Always show accessible fields based on their type
+        if (caloriesType === 'limit') {
+          macroLimits.push(`${caloriesValue}cal calories`);
+        } else {
+          macroGoals.push(`${caloriesValue}cal calories`);
+        }
+        
+        if (proteinType === 'limit') {
+          macroLimits.push(`${proteinValue}g protein`);
+        } else {
+          macroGoals.push(`${proteinValue}g protein`);
+        }
+        
+        if (fatType === 'limit') {
+          macroLimits.push(`${fatValue}g fat`);
+        } else {
+          macroGoals.push(`${fatValue}g fat`);
+        }
+        
+        // Show upgrade prompts for premium fields
+        macroLimits.push('? carbs (upgrade)', '? fiber (upgrade)', '? sodium (upgrade)');
+      }
+      
+      const macroGoalsDisplay = macroGoals.length > 0 ? macroGoals.join(' / ') : 'No goals set';
+      const macroLimitsDisplay = macroLimits.length > 0 ? macroLimits.join(' / ') : 'No limits set';
+      
+      // Build meal breakdown HTML
+      let mealBreakdownHTML = '';
+      const completedMeals = meals.filter(meal => meal.is_completed);
+      
+      if (completedMeals.length > 0) {
+        mealBreakdownHTML = completedMeals.map(meal => {
+          // Show meal macros - the API already filters based on subscription, exclude calories as it's shown separately
+          let mealMacros = `${Math.round(meal.nutrition.protein || 0)}g protein`;
+          if (meal.nutrition.carbs !== null && meal.nutrition.fat !== null) {
+            mealMacros += `, ${Math.round(meal.nutrition.carbs)}g carbs, ${Math.round(meal.nutrition.fat)}g fat`;
+          } else if (meal.nutrition.fat !== null) {
+            mealMacros += `, ${Math.round(meal.nutrition.fat)}g fat`;
+          }
+          if (meal.nutrition.fiber !== null && meal.nutrition.fiber !== undefined) {
+            mealMacros += `, ${Math.round(meal.nutrition.fiber)}g fiber`;
+          }
+          if (meal.nutrition.sodium !== null && meal.nutrition.sodium !== undefined) {
+            mealMacros += `, ${Math.round(meal.nutrition.sodium)}mg sodium`;
+          }
+          
+          return `
+            <div class="nutrition-meal-item" style="display: flex; flex-direction: column; width: 100%;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-bottom: 4px;">
+                <div style="flex: 1; min-width: 0;">
+                  <div class="nutrition-meal-name" style="font-weight: 500; line-height: 1.2; word-wrap: break-word;">${meal.recipe_name || meal.meal_name || 'Custom meal'}</div>
+                  <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: capitalize; margin-top: 2px;">${meal.meal_type}</div>
+                </div>
+                <div style="font-weight: 600; color: var(--primary-color); white-space: nowrap; margin-left: 8px;">${Math.round(meal.nutrition.calories || 0)} cal</div>
+              </div>
+              <div style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.2;">${mealMacros}</div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        mealBreakdownHTML = '<div style="text-align: center; color: var(--text-muted); padding: 1rem;">No completed meals for this date</div>';
+      }
+
+      let contentHTML = `
+        <div class="nutrition-overview">
+          ${overviewStats}
         </div>
         
-        <div class="nutrition-breakdown">
-          <div class="nutrition-category">
-            <div class="nutrition-category-title">
-              <i class="fas fa-dumbbell"></i>
-              Macronutrients
-            </div>
-            <div class="nutrition-category-meals">
-              <div class="nutrition-meal-item">
-                <span class="nutrition-meal-name">Daily Target</span>
-                <div class="nutrition-meal-macros">
-                  <div style="font-weight: 600; color: var(--success-color);">Goal: ${userNutritionGoals?.daily_calories || 2000} cal</div>
-                  <div style="font-size: 0.7rem; color: var(--text-muted);">${userNutritionGoals?.daily_protein || 150}p/${userNutritionGoals?.daily_carbs || 250}c/${userNutritionGoals?.daily_fat || 70}f</div>
+        <div class="nutrition-breakdown" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg); align-items: start;">
+          <div class="nutrition-goals-limits-stack" style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+            ${macroGoals.length > 0 ? `
+            <div class="nutrition-category">
+              <div class="nutrition-category-title">
+                <i class="fas fa-target"></i>
+                Goals
+              </div>
+              <div class="nutrition-category-meals">
+                <div class="nutrition-meal-item">
+                  <span class="nutrition-meal-name">Daily Targets</span>
+                  <div class="nutrition-meal-macros">
+                    <div style="font-weight: 600; color: var(--success-color);">Goals to Reach</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">${macroGoalsDisplay}</div>
+                  </div>
+                </div>
+                <div class="nutrition-meal-item">
+                  <span class="nutrition-meal-name">Progress</span>
+                  <div class="nutrition-meal-macros">
+                    <div style="font-weight: 600; color: var(--primary-color);">${Math.round((totals.calories / caloriesValue) * 100)}% calories</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">${Math.round(totals.calories || 0)} / ${caloriesValue} cal consumed</div>
+                  </div>
                 </div>
               </div>
-              <div class="nutrition-meal-item">
-                <span class="nutrition-meal-name">Progress</span>
-                <div class="nutrition-meal-macros">
-                  <div style="font-weight: 600; color: var(--primary-color);">${Math.round((totals.calories / (userNutritionGoals?.daily_calories || 2000)) * 100)}% complete</div>
-                  <div style="font-size: 0.7rem; color: var(--text-muted);">Calories consumed</div>
+            </div>
+            ` : ''}
+            
+            ${macroLimits.length > 0 ? `
+            <div class="nutrition-category">
+              <div class="nutrition-category-title">
+                <i class="fas fa-exclamation-triangle"></i>
+                Limits
+              </div>
+              <div class="nutrition-category-meals">
+                <div class="nutrition-meal-item">
+                  <span class="nutrition-meal-name">Daily Maximums</span>
+                  <div class="nutrition-meal-macros">
+                    <div style="font-weight: 600; color: var(--warning-color);">Stay Under</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">${macroLimitsDisplay}</div>
+                  </div>
                 </div>
               </div>
             </div>
+            ` : ''}
           </div>
           
           <div class="nutrition-category">
@@ -752,22 +879,26 @@ async function loadDailyNutritionSummary() {
               Meal Breakdown
             </div>
             <div class="nutrition-category-meals">
-              ${meals.map(meal => `
-                <div class="nutrition-meal-item">
-                  <div>
-                    <div class="nutrition-meal-name">${meal.meal_name}</div>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: capitalize;">${meal.meal_type}</div>
-                  </div>
-                  <div class="nutrition-meal-macros">
-                    <div style="font-weight: 600; color: var(--primary-color);">${Math.round(meal.nutrition.calories)} cal</div>
-                    <div style="font-size: 0.7rem; color: var(--text-muted);">${Math.round(meal.nutrition.protein)}p/${Math.round(meal.nutrition.carbs)}c/${Math.round(meal.nutrition.fat)}f</div>
-                  </div>
-                </div>
-              `).join('')}
+              ${mealBreakdownHTML}
             </div>
           </div>
         </div>
       `;
+      
+      // Add upgrade prompt for free users
+      if (isLimitedTier && upgradeMessage) {
+        contentHTML += `
+          <div style="text-align: center; padding: var(--spacing-md); background: var(--bg-secondary); border-radius: var(--radius-md); margin-top: var(--spacing-md); border: 1px dashed var(--border-light);">
+            <i class="fas fa-star" style="color: var(--primary-color); margin-bottom: var(--spacing-xs);"></i>
+            <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+              ${upgradeMessage}
+            </div>
+            <a href="/settings" style="color: var(--primary-color); text-decoration: none; font-weight: 600; font-size: 0.875rem;">
+              View Plans →
+            </a>
+          </div>
+        `;
+      }
       
       contentElement.innerHTML = contentHTML;
     } else {

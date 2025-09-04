@@ -866,3 +866,30 @@ CREATE TABLE IF NOT EXISTS pantry_change_notifications (
     INDEX idx_meal_plan_notifications (meal_plan_session_id),
     INDEX idx_created_date (created_at)
 );
+
+-- Table to store chat conversations for persistent chat history
+CREATE TABLE IF NOT EXISTS chat_conversations (
+    conversation_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
+    conversation_title VARCHAR(200) DEFAULT 'New Conversation',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE,
+    context_data JSON NULL, -- Store pantry items, preferences at conversation start
+    FOREIGN KEY (user_id) REFERENCES user_account(user_ID) ON DELETE CASCADE,
+    INDEX idx_user_conversations (user_id, is_active),
+    INDEX idx_conversation_updated (updated_at DESC)
+);
+
+-- Table to store individual messages within conversations
+CREATE TABLE IF NOT EXISTS chat_messages (
+    message_id INT AUTO_INCREMENT PRIMARY KEY,
+    conversation_id INT NOT NULL,
+    sender ENUM('user', 'assistant') NOT NULL,
+    message_content TEXT NOT NULL,
+    message_metadata JSON NULL, -- Store suggestions, meal_plan_data, etc.
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (conversation_id) REFERENCES chat_conversations(conversation_id) ON DELETE CASCADE,
+    INDEX idx_conversation_messages (conversation_id, created_at),
+    INDEX idx_message_created (created_at)
+);

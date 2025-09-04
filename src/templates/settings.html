@@ -16,6 +16,9 @@
       rel="stylesheet"
     />
 
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/preppr-logo.ico') }}">
+
     <!-- Font Awesome for icons -->
     <link
       rel="stylesheet"
@@ -280,6 +283,17 @@
         outline-offset: 2px;
       }
 
+      /* Remove borders/outlines when clicked for navigation links */
+      .nav-link:active,
+      .nav-link:focus {
+        outline: none;
+        border: none;
+      }
+
+      .nav-link {
+        border: none !important;
+      }
+
       /* Toggle Switch Styles */
       .toggle-switch {
         position: relative;
@@ -436,6 +450,11 @@
 
       .btn-premium i {
         font-size: 1.125rem;
+      }
+
+      .comparison-cell {
+        align-items: center;
+        justify-content: center;
       }
     </style>
   </head>

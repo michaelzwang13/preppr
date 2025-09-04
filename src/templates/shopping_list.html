@@ -16,6 +16,9 @@
       rel="stylesheet"
     />
 
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/preppr-logo.ico') }}">
+
     <!-- Font Awesome for icons -->
     <link
       rel="stylesheet"
@@ -213,6 +216,11 @@
         min-height: 140px;
       }
 
+      /* Dark mode list header */
+      [data-theme="dark"] .list-header {
+        background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+      }
+
       .list-header.expanded {
         border-bottom: 1px solid var(--border-light);
       }
@@ -345,6 +353,11 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+      }
+
+      /* Dark mode modal header */
+      [data-theme="dark"] .modal-header {
+        background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
       }
 
       .modal-title {

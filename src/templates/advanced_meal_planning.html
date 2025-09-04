@@ -16,6 +16,9 @@
       rel="stylesheet"
     />
 
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/preppr-logo.ico') }}">
+
     <!-- Base CSS -->
     <link
       rel="stylesheet"
@@ -249,13 +252,26 @@
         color: var(--text-white);
       }
 
+      .chatbot-title {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+      }
+
       .chatbot-title h3 {
         margin: 0 0 var(--spacing-sm) 0;
         font-size: 2rem;
         font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-md);
+      }
+
+      /* Sidebar toggle styles */
+      .chatbot-sidebar.hidden {
+        margin-left: -320px;
+        transition: margin-left 0.3s ease;
+      }
+
+      .chatbot-sidebar {
+        transition: margin-left 0.3s ease;
       }
 
       .chatbot-title p {
@@ -278,38 +294,15 @@
 
       .message {
         display: flex;
-        gap: var(--spacing-md);
         max-width: 80%;
       }
 
       .message.user-message {
         align-self: flex-end;
-        flex-direction: row-reverse;
       }
 
       .message.assistant-message {
         align-self: flex-start;
-      }
-
-      .message-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        font-size: 1rem;
-      }
-
-      .assistant-message .message-avatar {
-        background: var(--primary-gradient);
-        color: var(--text-white);
-      }
-
-      .user-message .message-avatar {
-        background: var(--secondary-gradient);
-        color: var(--text-white);
       }
 
       .message-content {
@@ -497,6 +490,77 @@
         0%, 100% { opacity: 0.3; transform: scale(0.8); }
         50% { opacity: 1; transform: scale(1); }
       }
+
+      /* Mode toggle styling */
+      .mode-toggle-container {
+        background: var(--bg-secondary);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-light);
+        margin-bottom: var(--spacing-md);
+      }
+
+      .mode-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        user-select: none;
+      }
+
+      .mode-label:hover {
+        color: var(--primary-color);
+      }
+
+      .mode-divider {
+        background: var(--border-medium);
+        opacity: 0.6;
+        transition: opacity 0.2s ease;
+      }
+
+      .mode-toggle-container:hover .mode-divider {
+        opacity: 0.8;
+      }
+
+      /* Mode content transitions */
+      .mode-content {
+        transition: all 0.3s ease;
+      }
+
+      .mode-content.fade-out {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+
+      .mode-content.fade-in {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      /* Improve chat mode styling */
+      #chatModeContent .conversations-list {
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        background: var(--bg-primary);
+        padding: var(--spacing-xs);
+      }
+
+      /* Improve customize mode spacing */
+      #customizeModeContent .sidebar-section {
+        margin-bottom: var(--spacing-lg);
+      }
+
+      /* Better new chat button in chat mode */
+      .btn-new-chat {
+        background: var(--primary-gradient);
+        transition: all 0.2s ease;
+      }
+
+      .btn-new-chat:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      }
     </style>
   </head>
 
@@ -512,18 +576,69 @@
         <div class="chatbot-container">
           <!-- Sidebar for customization options -->
           <div class="chatbot-sidebar">
+            <!-- Mode Toggle Header -->
             <div class="sidebar-header">
-              <h3>Customize</h3>
+              <div class="mode-toggle-container" style="display: flex; align-items: center; position: relative;">
+                <div style="flex: 1; display: flex; justify-content: center;">
+                  <span class="mode-label" data-mode="chats" style="font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease;">Chats</span>
+                </div>
+                <div class="mode-divider" style="width: 1px; height: 16px; background: var(--border-medium); opacity: 0.6;"></div>
+                <div style="flex: 1; display: flex; justify-content: center;">
+                  <span class="mode-label" data-mode="customize" style="font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: color 0.2s ease;">Customize</span>
+                </div>
+              </div>
             </div>
             
-            <div class="sidebar-section">
-              <h4><i class="fas fa-carrot"></i> Pantry Items</h4>
-              <div class="pantry-items-list" id="pantryItemsList">
-                <!-- Dynamic pantry items will be loaded here -->
+            <!-- Chat Mode Sections -->
+            <div id="chatModeContent" class="mode-content">
+              <div class="sidebar-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                  <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);">
+                    <i class="fas fa-comments" style="color: var(--primary-color); margin-right: var(--spacing-xs);"></i>
+                    Conversations
+                  </h4>
+                  <button id="newChatBtn" class="btn-new-chat" style="background: var(--primary-color); border: none; color: white; padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--radius-sm); font-size: 0.75rem; cursor: pointer;">
+                    <i class="fas fa-plus"></i> New
+                  </button>
+                </div>
+                <div id="conversationsList" class="conversations-list" style="max-height: calc(100vh - 300px); overflow-y: auto;">
+                  <div class="loading-conversations" style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: var(--spacing-sm);">
+                    Loading conversations...
+                  </div>
+                </div>
               </div>
-              <button class="btn-add-pantry" id="addPantryBtn">
-                <i class="fas fa-plus"></i> Add Item
-              </button>
+            </div>
+            
+            <!-- Customize Mode Sections -->
+            <div id="customizeModeContent" class="mode-content" style="display: none;">
+              <div class="sidebar-section">
+                <h4><i class="fas fa-carrot"></i> Pantry Items</h4>
+              
+              <!-- Search bar for pantry items -->
+              <div class="pantry-search-wrapper" style="position: relative; margin-bottom: var(--spacing-md);">
+                <input 
+                  type="text" 
+                  id="pantrySearchInput" 
+                  placeholder="Search by name, category, or tags..." 
+                  style="width: 100%; padding: var(--spacing-sm); border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 0.875rem; font-family: var(--font-family);"
+                />
+                <!-- Search results dropdown -->
+                <div id="pantrySearchResults" class="search-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-primary); border: 1px solid var(--border-light); border-top: none; border-radius: 0 0 var(--radius-md) var(--radius-md); max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                  <!-- Search results will appear here -->
+                </div>
+              </div>
+              
+              <!-- Selected pantry items (for meal planning) -->
+              <div class="selected-pantry-items" id="selectedPantryItems" style="margin-bottom: var(--spacing-md);">
+                <h5 style="margin: 0 0 var(--spacing-sm) 0; font-size: 0.875rem; color: var(--text-secondary);">
+                  <i class="fas fa-check-circle" style="color: var(--primary-color);"></i> Selected for meal plan:
+                </h5>
+                <div class="selected-items-list" id="selectedItemsList" style="display: flex; flex-direction: column; gap: var(--spacing-xs); max-height: 120px; overflow-y: auto; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: var(--spacing-sm); background: var(--bg-primary); min-height: 60px;">
+                  <div class="empty-state" style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: var(--spacing-sm);">
+                    No items selected yet
+                  </div>
+                </div>
+              </div>
             </div>
             
             <div class="sidebar-section">
@@ -555,9 +670,10 @@
                   <option value="gluten_free">Gluten Free</option>
                 </select>
               </div>
+              </div>
             </div>
 
-            <!-- Cancel meal planning button at bottom -->
+            <!-- Cancel meal planning button at bottom (shared between modes) -->
             <div class="cancel-meal-planning">
               <a href="{{ url_for('shopping.meal_plans') }}" class="cancel-btn">
                 <i class="fas fa-times"></i>
@@ -570,16 +686,17 @@
           <div class="chatbot-main">
             <div class="chatbot-header">
               <div class="chatbot-title">
-                <h3><i class="fas fa-robot"></i> AI Meal Planning Assistant</h3>
-                <p>Tell me what you're looking for and I'll help create the perfect meal plan</p>
+                <button id="sidebarToggle" class="sidebar-toggle" style="background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; margin-right: var(--spacing-md); padding: var(--spacing-xs); border-radius: var(--radius-sm); transition: background 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">
+                  <i class="fas fa-bars"></i>
+                </button>
+                <div>
+                  <h3>AI Meal Planning Assistant</h3>
+                </div>
               </div>
             </div>
             
             <div class="chat-messages" id="chatMessages">
               <div class="message assistant-message">
-                <div class="message-avatar">
-                  <i class="fas fa-robot"></i>
-                </div>
                 <div class="message-content">
                   <p>Hi! I'm your meal planning assistant. I can help you create personalized meal plans based on your pantry items, dietary preferences, and specific requirements.</p>
                   <p>What kind of meal plan would you like me to create for you?</p>

@@ -265,8 +265,11 @@ async function handleNutritionGoals(event) {
       const data = await response.json();
       if (data.success) {
         alert("Nutrition goals saved successfully!");
-        // Refresh nutrition stats if they exist
+        // Refresh nutrition stats and chart data
         loadNutritionStats();
+        // Reload chart with current period
+        const activePeriod = document.querySelector('.chart-btn.active')?.dataset.period || '7d';
+        loadNutritionChartData(activePeriod);
       } else {
         alert("Failed to save nutrition goals: " + data.message);
       }
@@ -346,10 +349,320 @@ async function initializeChartControls() {
   }
 }
 
-// Placeholder for chart data loading (will be implemented later)
+// Load and display nutrition chart data
 async function loadNutritionChartData(period) {
-  // This will be implemented when the nutrition analytics API endpoints are added
-  console.log(`Loading chart data for period: ${period}`);
+  try {
+    const response = await fetch(`/api/nutrition/analytics?period=${period}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      console.log('Nutrition data received:', data.data);
+      console.log('Accessible fields:', data.accessible_fields);
+      console.log('Is premium:', data.is_premium);
+      renderNutritionChart(data.data, data.goals, data.accessible_fields, data.is_premium);
+      updateQuickStats(data.data, data.goals);
+    } else {
+      console.error('Failed to load nutrition data:', data.message);
+      showChartError('Failed to load nutrition data');
+    }
+  } catch (error) {
+    console.error('Error loading nutrition chart data:', error);
+    showChartError('Unable to connect to nutrition analytics');
+  }
+}
+
+// Chart instance global variable
+let nutritionChart = null;
+
+// Define macro colors
+const macroColors = {
+  calories: '#ef4444',    // Red
+  protein: '#3b82f6',     // Blue  
+  carbs: '#f97316',       // Orange
+  fat: '#22c55e',         // Green
+  fiber: '#8b5cf6',       // Purple
+  sodium: '#f59e0b'       // Amber
+};
+
+// Render the nutrition trends chart
+function renderNutritionChart(chartData, goals, accessibleFields, isPremium) {
+  const chartWrapper = document.querySelector('.chart-wrapper');
+  const placeholder = document.querySelector('.chart-placeholder');
+  
+  // Remove placeholder and add canvas
+  if (placeholder) {
+    placeholder.remove();
+  }
+  
+  let canvas = document.querySelector('.chart-canvas');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.className = 'chart-canvas';
+    chartWrapper.appendChild(canvas);
+  }
+  
+  const ctx = canvas.getContext('2d');
+  
+  // Destroy existing chart
+  if (nutritionChart) {
+    nutritionChart.destroy();
+  }
+  
+  // Prepare datasets - only show macros that are accessible
+  const datasets = [];
+  
+  // Always include calories (available to all users)
+  datasets.push({
+    label: 'Calories',
+    data: chartData.map(d => ({ x: d.date, y: d.calories })),
+    borderColor: macroColors.calories,
+    backgroundColor: macroColors.calories + '20',
+    tension: 0.4,
+    fill: false,
+    yAxisID: 'y-calories'
+  });
+  
+  // Always include protein (available to all users)  
+  datasets.push({
+    label: 'Protein (g)',
+    data: chartData.map(d => ({ x: d.date, y: d.protein })),
+    borderColor: macroColors.protein,
+    backgroundColor: macroColors.protein + '20',
+    tension: 0.4,
+    fill: false,
+    yAxisID: 'y-macros'
+  });
+  
+  // Add premium-only fields if accessible and user is premium
+  if (accessibleFields.fat && isPremium) {
+    datasets.push({
+      label: 'Fat (g)',
+      data: chartData.map(d => ({ x: d.date, y: d.fat || 0 })),
+      borderColor: macroColors.fat,
+      backgroundColor: macroColors.fat + '20',
+      tension: 0.4,
+      fill: false,
+      yAxisID: 'y-macros'
+    });
+  }
+  
+  if (accessibleFields.carbs && isPremium) {
+    datasets.push({
+      label: 'Carbs (g)',
+      data: chartData.map(d => ({ x: d.date, y: d.carbs || 0 })),
+      borderColor: macroColors.carbs,
+      backgroundColor: macroColors.carbs + '20',
+      tension: 0.4,
+      fill: false,
+      yAxisID: 'y-macros'
+    });
+  }
+  
+  if (accessibleFields.fiber && isPremium) {
+    datasets.push({
+      label: 'Fiber (g)',
+      data: chartData.map(d => ({ x: d.date, y: d.fiber || 0 })),
+      borderColor: macroColors.fiber,
+      backgroundColor: macroColors.fiber + '20',
+      tension: 0.4,
+      fill: false,
+      yAxisID: 'y-macros'
+    });
+  }
+  
+  if (accessibleFields.sodium && isPremium) {
+    datasets.push({
+      label: 'Sodium (mg)',
+      data: chartData.map(d => ({ x: d.date, y: d.sodium || 0 })),
+      borderColor: macroColors.sodium,
+      backgroundColor: macroColors.sodium + '20',
+      tension: 0.4,
+      fill: false,
+      yAxisID: 'y-macros'  // Use same axis as other macros for now
+    });
+  }
+  
+  // Chart configuration
+  const config = {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            displayFormats: {
+              day: 'MMM dd'
+            },
+            tooltipFormat: 'MMM dd, yyyy'
+          },
+          title: {
+            display: true,
+            text: 'Date'
+          }
+        },
+        'y-calories': {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          title: {
+            display: true,
+            text: 'Calories',
+            color: macroColors.calories
+          },
+          ticks: {
+            color: macroColors.calories
+          },
+          grid: {
+            drawOnChartArea: false,
+          }
+        },
+        'y-macros': {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Grams / mg',
+            color: macroColors.protein
+          },
+          ticks: {
+            color: macroColors.protein
+          },
+          grid: {
+            drawOnChartArea: true,
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 15
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            title: function(tooltipItems) {
+              return new Date(tooltipItems[0].parsed.x).toLocaleDateString();
+            },
+            label: function(context) {
+              const label = context.dataset.label || '';
+              const value = Math.round(context.parsed.y * 10) / 10;
+              
+              // Show goal/limit comparison for main metrics
+              const metric = label.toLowerCase().split(' ')[0];
+              let targetValue = null;
+              let targetType = 'goal'; // default
+              
+              if (goals && goals[metric]) {
+                targetValue = goals[metric];
+                targetType = goals[`${metric}_type`] || 'goal';
+                
+                if (targetValue > 0) {
+                  const percentage = Math.round((value / targetValue) * 100);
+                  const typeText = targetType === 'limit' ? 'limit' : 'goal';
+                  
+                  if (targetType === 'limit') {
+                    // For limits, show if over/under the limit
+                    const statusText = percentage > 100 ? 'over' : 'under';
+                    return `${label}: ${value} (${percentage}% of ${targetValue} ${typeText}, ${statusText})`;
+                  } else {
+                    // For goals, show progress toward goal
+                    return `${label}: ${value} (${percentage}% of ${targetValue} ${typeText})`;
+                  }
+                }
+              }
+              
+              return `${label}: ${value}`;
+            },
+          }
+        }
+      }
+    }
+  };
+  
+  // Create new chart
+  nutritionChart = new Chart(ctx, config);
+}
+
+// Update quick stats cards
+function updateQuickStats(chartData, goals) {
+  if (!chartData || chartData.length === 0) return;
+  
+  // Get today's data (last entry)
+  const todayData = chartData[chartData.length - 1];
+  
+  // Update calories
+  const caloriesElement = document.getElementById('todayCalories');
+  if (caloriesElement) {
+    caloriesElement.textContent = Math.round(todayData.calories || 0);
+  }
+  
+  // Update protein
+  const proteinElement = document.getElementById('todayProtein');
+  if (proteinElement) {
+    proteinElement.textContent = `${Math.round(todayData.protein || 0)}g`;
+  }
+  
+  // Calculate goal progress
+  let goalProgress = 0;
+  if (goals && goals.calories && goals.protein) {
+    const calorieProgress = goals.calories > 0 ? (todayData.calories / goals.calories) : 0;
+    const proteinProgress = goals.protein > 0 ? (todayData.protein / goals.protein) : 0;
+    goalProgress = Math.round(((calorieProgress + proteinProgress) / 2) * 100);
+  }
+  
+  const progressElement = document.getElementById('goalProgress');
+  if (progressElement) {
+    progressElement.textContent = `${Math.min(goalProgress, 100)}%`;
+  }
+  
+  // Calculate weekly average score
+  const weeklyScore = chartData.reduce((sum, day) => {
+    let dayScore = 0;
+    let scoreCount = 0;
+    
+    if (goals && goals.calories && todayData.calories > 0) {
+      dayScore += Math.min((day.calories / goals.calories) * 100, 100);
+      scoreCount++;
+    }
+    
+    if (goals && goals.protein && todayData.protein > 0) {
+      dayScore += Math.min((day.protein / goals.protein) * 100, 100);
+      scoreCount++;
+    }
+    
+    return sum + (scoreCount > 0 ? dayScore / scoreCount : 0);
+  }, 0) / chartData.length;
+  
+  const avgWeeklyElement = document.getElementById('avgWeekly');
+  if (avgWeeklyElement) {
+    avgWeeklyElement.textContent = Math.round(weeklyScore * 10) / 10;
+  }
+}
+
+// Show chart error message
+function showChartError(message) {
+  const chartWrapper = document.querySelector('.chart-wrapper');
+  chartWrapper.innerHTML = `
+    <div class="chart-placeholder">
+      <i class="fas fa-exclamation-triangle"></i>
+      <div>${message}</div>
+      <div style="font-size: 0.875rem; margin-top: var(--spacing-sm);">
+        Please try again later or check your meal completion data
+      </div>
+    </div>
+  `;
 }
 
 // Initialize everything when DOM is loaded
@@ -368,4 +681,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Load initial data
   loadNutritionGoals();
   loadNutritionStats();
+  
+  // Load initial chart data (7 days by default)
+  loadNutritionChartData('7d');
 });

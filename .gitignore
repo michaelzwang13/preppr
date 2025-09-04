@@ -156,3 +156,12 @@ preppr-mobile/
 
 # shell scripts
 *.sh
+
+# git
+.gitattributes
+
+# pem
+*.pem
+
+# node
+preppr-mobile/

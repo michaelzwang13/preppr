@@ -191,7 +191,7 @@ async function handleFormSubmit(event) {
     // 1) Search for item by UPC using Nutritionix API
     const searchResponse = await fetch(
       `${
-        config.urls?.searchItem || "/api/shopping-trip/searchitem"
+        config.urls?.searchItem || "/api/searchitem"
       }?upc=${encodeURIComponent(itemName)}`
     );
     const searchData = await searchResponse.json();
@@ -702,8 +702,6 @@ function setupShoppingListEventListeners() {
 // Load available shopping lists
 async function loadAvailableLists() {
   try {
-    showNotification("Loading your shopping lists...", "info");
-
     const response = await fetch("/api/shopping-trip/available-lists");
     const data = await response.json();
 

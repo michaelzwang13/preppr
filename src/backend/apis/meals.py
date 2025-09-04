@@ -11,16 +11,18 @@ meals_bp = Blueprint("meals", __name__, url_prefix="/api")
 def filter_nutrition_data_by_subscription(user_id, nutrition_data):
     """
     Filter nutrition data based on user's subscription tier.
-    Free tier: calories + protein only
-    Premium tier: all macro data
+    Free tier: calories, protein, fat
+    Premium tier: all macro data including carbs, fiber, sodium
     """
+    from src.subscription_utils import get_user_subscription_info
     subscription_info = get_user_subscription_info(user_id)
+    is_premium = subscription_info['tier'] == 'premium' and subscription_info['status'] == 'active'
     
-    if subscription_info['tier'] == 'premium':
+    if is_premium:
         # Premium users get full nutrition data
         return nutrition_data
     
-    # Free tier users only get calories and protein
+    # Free tier users get calories, protein, and fat
     filtered_data = {}
     
     # Always include these for free tier
@@ -28,10 +30,11 @@ def filter_nutrition_data_by_subscription(user_id, nutrition_data):
         filtered_data['calories'] = nutrition_data['calories']
     if 'protein' in nutrition_data:
         filtered_data['protein'] = nutrition_data['protein']
+    if 'fat' in nutrition_data:
+        filtered_data['fat'] = nutrition_data['fat']
     
-    # Hide other macros for free tier
+    # Hide premium-only macros for free tier
     filtered_data['carbs'] = None
-    filtered_data['fat'] = None
     filtered_data['fiber'] = None
     filtered_data['sodium'] = None
     
@@ -92,10 +95,10 @@ def get_meal_nutrition(meal_id):
                 "macros": {
                     "protein": filtered_nutrition["protein"],
                     "carbs": filtered_nutrition["carbs"],
-                    "fat": filtered_nutrition["fat"]
+                    "fat": filtered_nutrition["fat"],
+                    "fiber": filtered_nutrition["fiber"],
+                    "sodium": filtered_nutrition["sodium"]
                 },
-                "fiber": filtered_nutrition["fiber"],
-                "sodium": filtered_nutrition["sodium"],
                 "servings": nutrition_data["servings"],
                 "serving_size": nutrition_data["serving_size"],
                 "source_type": nutrition_data["source_type"],
@@ -123,7 +126,7 @@ def get_daily_nutrition_summary(date):
         return jsonify({"success": False, "message": "Not authenticated"})
     
     user_id = session["user_ID"]
-    
+        
     try:
         target_date = datetime.strptime(date, "%Y-%m-%d").date()
     except ValueError:
@@ -135,7 +138,7 @@ def get_daily_nutrition_summary(date):
     try:
         # Get all meals and nutrition for the specific date
         meals_query = """
-            SELECT m.meal_id, m.meal_type, rt.name as recipe_name,
+            SELECT m.meal_id, m.meal_type, rt.recipe_name as recipe_name,
                    mn.calories, mn.protein_g, mn.carbohydrates_g, mn.fat_g,
                    mn.fiber_g, mn.sodium_mg, mn.servings, mn.serving_size,
                    m.is_completed
@@ -152,9 +155,10 @@ def get_daily_nutrition_summary(date):
                     ELSE 5
                 END
         """
+                
         cursor.execute(meals_query, (user_id, target_date))
         meals_data = cursor.fetchall()
-        
+                
         # Calculate daily totals
         daily_totals = {
             "calories": 0,
@@ -282,7 +286,13 @@ def generate_meal_plan():
     cooking_time = data.get("cooking_time", 60)
     minimal_cooking_sessions = data.get("minimal_cooking_sessions", False)
     selected_meals = data.get("selected_meals", None)  # New parameter for meal selection
-    nutrition_tracking_enabled = True
+    # Check if user is premium for enhanced nutrition tracking
+    from src.subscription_utils import get_user_subscription_info
+    subscription_info = get_user_subscription_info(user_id)
+    is_premium = subscription_info['tier'] == 'premium' and subscription_info['status'] == 'active'
+    
+    # Enhanced nutrition tracking (including fiber/sodium) for premium users only
+    nutrition_tracking_enabled = is_premium
 
     try:
         days = int(days)
@@ -413,9 +423,14 @@ def generate_meal_plan():
         ))
         session_id = cursor.lastrowid
 
-        # Check if nutrition tracking is enabled for this user
+        # Check if nutrition tracking is enabled for this user (requires premium for fiber/sodium)
         from src.backend.views.shopping import get_user_preference
-        nutrition_tracking_enabled = get_user_preference(user_id, "nutrition_tracking_enabled", True)
+        from src.subscription_utils import get_user_subscription_info
+        subscription_info = get_user_subscription_info(user_id)
+        is_premium = subscription_info['tier'] == 'premium' and subscription_info['status'] == 'active'
+        
+        # Enhanced nutrition tracking (including fiber/sodium) for premium users only
+        nutrition_tracking_enabled = is_premium and get_user_preference(user_id, "nutrition_tracking_enabled", True)
         
         # Process each day and create individual meals
         created_meals = []
@@ -1662,6 +1677,7 @@ def advanced_meal_planning_chat():
     data = request.get_json()
     user_id = session["user_ID"]
     message = data.get("message", "").strip()
+    conversation_id = data.get("conversation_id")  # Optional - for existing conversations
     
     if not message:
         return jsonify({"success": False, "message": "Message is required"})
@@ -1669,19 +1685,100 @@ def advanced_meal_planning_chat():
     # Get context from sidebar inputs
     context = {
         "pantry_items": data.get("pantry_items", []),
+        "selected_pantry_items": data.get("selected_pantry_items", []),
         "food_restrictions": data.get("food_restrictions", []),
         "dietary_preference": data.get("dietary_preference", "none"),
         "conversation_history": data.get("conversation_history", [])
     }
     
+    db = get_db()
+    cursor = db.cursor()
+    
     try:
         # Check subscription limits for advanced features
         check_subscription_limit(user_id, 'ai_chat_requests')
+        
+        # Get or create conversation
+        if conversation_id:
+            # Use existing conversation
+            cursor.execute(
+                "SELECT conversation_id FROM chat_conversations WHERE conversation_id = %s AND user_id = %s AND is_active = TRUE",
+                (conversation_id, user_id)
+            )
+            if not cursor.fetchone():
+                conversation_id = None  # Invalid conversation, create new one
+        
+        if not conversation_id:
+            # Create new conversation
+            cursor.execute(
+                "INSERT INTO chat_conversations (user_id, context_data) VALUES (%s, %s)",
+                (user_id, json.dumps({
+                    "pantry_items": context["pantry_items"][:10],  # Store first 10 items as context
+                    "dietary_preference": context["dietary_preference"],
+                    "food_restrictions": context["food_restrictions"]
+                }))
+            )
+            conversation_id = cursor.lastrowid
+        
+        # Save user message to database
+        cursor.execute(
+            "INSERT INTO chat_messages (conversation_id, sender, message_content) VALUES (%s, 'user', %s)",
+            (conversation_id, message)
+        )
         
         # Generate response using AI
         response = generate_chat_response(message, context, user_id)
         
         if response:
+            # Save assistant response to database
+            message_metadata = {
+                "suggestions": response.get("suggestions", []),
+                "action_required": response.get("action_required", False),
+                "meal_plan_data": response.get("meal_plan_data")
+            }
+            
+            cursor.execute(
+                "INSERT INTO chat_messages (conversation_id, sender, message_content, message_metadata) VALUES (%s, 'assistant', %s, %s)",
+                (conversation_id, response["message"], json.dumps(message_metadata) if any(message_metadata.values()) else None)
+            )
+            
+            # Update conversation updated_at timestamp
+            cursor.execute(
+                "UPDATE chat_conversations SET updated_at = CURRENT_TIMESTAMP WHERE conversation_id = %s",
+                (conversation_id,)
+            )
+            
+            # Auto-generate conversation title from first few exchanges if it's a new conversation
+            if not data.get("conversation_id"):
+                # Get conversation messages for title generation
+                cursor.execute("""
+                    SELECT sender, message_content
+                    FROM chat_messages 
+                    WHERE conversation_id = %s 
+                    ORDER BY created_at ASC
+                    LIMIT 6
+                """, (conversation_id,))
+                
+                conversation_messages = []
+                for msg in cursor.fetchall():
+                    conversation_messages.append({
+                        'sender': msg['sender'],
+                        'message': msg['message_content']
+                    })
+                
+                # Extract context data that was stored with the conversation
+                cursor.execute("SELECT context_data FROM chat_conversations WHERE conversation_id = %s", (conversation_id,))
+                context_result = cursor.fetchone()
+                stored_context = json.loads(context_result['context_data']) if context_result and context_result['context_data'] else None
+                
+                title = generate_conversation_title_with_ai(conversation_messages, stored_context)
+                cursor.execute(
+                    "UPDATE chat_conversations SET conversation_title = %s WHERE conversation_id = %s",
+                    (title, conversation_id)
+                )
+            
+            db.commit()
+            
             # Increment usage counter
             increment_usage(user_id, 'ai_chat_requests')
             
@@ -1690,15 +1787,18 @@ def advanced_meal_planning_chat():
                 "response": response["message"],
                 "suggestions": response.get("suggestions", []),
                 "action_required": response.get("action_required", False),
-                "meal_plan_data": response.get("meal_plan_data")
+                "meal_plan_data": response.get("meal_plan_data"),
+                "conversation_id": conversation_id
             })
         else:
+            db.rollback()
             return jsonify({
                 "success": False, 
                 "message": "Sorry, I'm having trouble processing your request right now. Please try again."
             })
     
     except SubscriptionLimitExceeded as e:
+        db.rollback()
         return jsonify({
             'success': False,
             'message': str(e),
@@ -1707,11 +1807,315 @@ def advanced_meal_planning_chat():
             'requires_upgrade': True
         }), 403
     except Exception as e:
+        db.rollback()
         print(f"ERROR: Advanced meal planning chat failed: {str(e)}")
         return jsonify({
             "success": False, 
             "message": "An error occurred while processing your request."
         })
+    finally:
+        cursor.close()
+
+
+@meals_bp.route("/conversations", methods=["GET"])
+def get_user_conversations():
+    """Get all conversations for the current user"""
+    if "user_ID" not in session:
+        return jsonify({"success": False, "message": "Not authenticated"})
+    
+    user_id = session["user_ID"]
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT 
+                c.conversation_id,
+                c.conversation_title,
+                c.created_at,
+                c.updated_at,
+                COUNT(m.message_id) as message_count,
+                MAX(m.created_at) as last_message_at
+            FROM chat_conversations c
+            LEFT JOIN chat_messages m ON c.conversation_id = m.conversation_id
+            WHERE c.user_id = %s AND c.is_active = TRUE
+            GROUP BY c.conversation_id
+            ORDER BY c.updated_at DESC
+            LIMIT 20
+        """, (user_id,))
+        
+        conversations = cursor.fetchall()
+        formatted_conversations = []
+        
+        for conv in conversations:
+            formatted_conversations.append({
+                "conversation_id": conv["conversation_id"],
+                "title": conv["conversation_title"],
+                "created_at": conv["created_at"].isoformat() if conv["created_at"] else None,
+                "updated_at": conv["updated_at"].isoformat() if conv["updated_at"] else None,
+                "message_count": conv["message_count"],
+                "last_message_at": conv["last_message_at"].isoformat() if conv["last_message_at"] else None
+            })
+        
+        return jsonify({"success": True, "conversations": formatted_conversations})
+        
+    except Exception as e:
+        print(f"ERROR: Failed to get conversations: {str(e)}")
+        return jsonify({"success": False, "message": "Failed to load conversations"})
+    finally:
+        cursor.close()
+
+
+@meals_bp.route("/conversations/<int:conversation_id>", methods=["GET"])
+def get_conversation_history(conversation_id):
+    """Get message history for a specific conversation"""
+    if "user_ID" not in session:
+        return jsonify({"success": False, "message": "Not authenticated"})
+    
+    user_id = session["user_ID"]
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        # Verify conversation belongs to user
+        cursor.execute(
+            "SELECT conversation_id, conversation_title, context_data FROM chat_conversations WHERE conversation_id = %s AND user_id = %s AND is_active = TRUE",
+            (conversation_id, user_id)
+        )
+        conversation = cursor.fetchone()
+        
+        if not conversation:
+            return jsonify({"success": False, "message": "Conversation not found"})
+        
+        # Get messages
+        cursor.execute("""
+            SELECT message_id, sender, message_content, message_metadata, created_at
+            FROM chat_messages 
+            WHERE conversation_id = %s 
+            ORDER BY created_at ASC
+        """, (conversation_id,))
+        
+        messages = cursor.fetchall()
+        formatted_messages = []
+        
+        for msg in messages:
+            metadata = json.loads(msg["message_metadata"]) if msg["message_metadata"] else {}
+            formatted_messages.append({
+                "message_id": msg["message_id"],
+                "sender": msg["sender"],
+                "message": msg["message_content"],
+                "metadata": metadata,
+                "created_at": msg["created_at"].isoformat() if msg["created_at"] else None
+            })
+        
+        context_data = json.loads(conversation["context_data"]) if conversation["context_data"] else {}
+        
+        return jsonify({
+            "success": True,
+            "conversation": {
+                "conversation_id": conversation["conversation_id"],
+                "title": conversation["conversation_title"],
+                "context": context_data,
+                "messages": formatted_messages
+            }
+        })
+        
+    except Exception as e:
+        print(f"ERROR: Failed to get conversation history: {str(e)}")
+        return jsonify({"success": False, "message": "Failed to load conversation"})
+    finally:
+        cursor.close()
+
+
+@meals_bp.route("/conversations/<int:conversation_id>", methods=["DELETE"])
+def delete_conversation(conversation_id):
+    """Delete a conversation and all its messages"""
+    if "user_ID" not in session:
+        return jsonify({"success": False, "message": "Not authenticated"})
+    
+    user_id = session["user_ID"]
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        # Verify conversation belongs to user
+        cursor.execute(
+            "SELECT conversation_id FROM chat_conversations WHERE conversation_id = %s AND user_id = %s AND is_active = TRUE",
+            (conversation_id, user_id)
+        )
+        
+        if not cursor.fetchone():
+            return jsonify({"success": False, "message": "Conversation not found"})
+        
+        # Mark conversation as inactive (soft delete)
+        cursor.execute(
+            "UPDATE chat_conversations SET is_active = FALSE WHERE conversation_id = %s",
+            (conversation_id,)
+        )
+        
+        db.commit()
+        return jsonify({"success": True, "message": "Conversation deleted"})
+        
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR: Failed to delete conversation: {str(e)}")
+        return jsonify({"success": False, "message": "Failed to delete conversation"})
+    finally:
+        cursor.close()
+
+
+@meals_bp.route("/conversations", methods=["POST"])
+def create_new_conversation():
+    """Create a new conversation"""
+    if "user_ID" not in session:
+        return jsonify({"success": False, "message": "Not authenticated"})
+    
+    user_id = session["user_ID"]
+    data = request.get_json()
+    title = data.get("title", "New Conversation")
+    
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        cursor.execute(
+            "INSERT INTO chat_conversations (user_id, conversation_title) VALUES (%s, %s)",
+            (user_id, title)
+        )
+        conversation_id = cursor.lastrowid
+        db.commit()
+        
+        return jsonify({
+            "success": True,
+            "conversation_id": conversation_id,
+            "title": title
+        })
+        
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR: Failed to create conversation: {str(e)}")
+        return jsonify({"success": False, "message": "Failed to create conversation"})
+    finally:
+        cursor.close()
+
+
+def generate_conversation_title_with_ai(conversation_messages, context_data=None):
+    """Generate a concise conversation title using Gemini Flash AI"""
+    try:
+        # Get first 2-3 user messages for context
+        user_messages = []
+        for msg in conversation_messages[:6]:  # Look at first 6 messages (3 exchanges)
+            if msg.get('sender') == 'user':
+                user_messages.append(msg.get('message', ''))
+                if len(user_messages) >= 3:  # Limit to first 3 user messages
+                    break
+        
+        if not user_messages:
+            return "New Conversation"
+        
+        # Build context from additional data
+        context_parts = []
+        if context_data:
+            if context_data.get('dietary_preference') and context_data.get('dietary_preference') != 'none':
+                context_parts.append(f"Diet: {context_data['dietary_preference']}")
+            if context_data.get('food_restrictions'):
+                restrictions = [r for r in context_data['food_restrictions'] if r.strip()]
+                if restrictions:
+                    context_parts.append(f"Restrictions: {', '.join(restrictions[:2])}")
+        
+        context_text = " | ".join(context_parts) if context_parts else ""
+        user_text = " | ".join(user_messages)
+        
+        # Build minimal prompt for title generation
+        prompt = f"""Generate a concise 2-5 word title for a meal planning conversation based on these user messages.
+
+USER MESSAGES: {user_text}
+CONTEXT: {context_text}
+
+EXAMPLES:
+- "Weekly Meal Plan"
+- "Keto Dinner Ideas" 
+- "Budget Family Meals"
+- "Quick Lunch Recipes"
+- "Thai Cooking Help"
+- "Pantry Cleanout Plan"
+
+Generate only the title (2-5 words, no quotes, no explanation):"""
+
+        # Use existing Gemini infrastructure with minimal tokens
+        import requests
+        import os
+        
+        api_key = os.getenv('GEMINI_API_KEY')
+        if not api_key:
+            # Fallback to basic logic
+            return generate_basic_conversation_title(user_messages[0])
+            
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key}"
+        
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.3,  # Lower temperature for consistent titles
+                "maxOutputTokens": 15,  # Very limited for just a title
+            }
+        }
+        
+        response = requests.post(url, json=payload, timeout=10)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if 'candidates' in result and result['candidates']:
+                title = result['candidates'][0]['content']['parts'][0]['text'].strip()
+                
+                # Clean up the title
+                title = title.replace('"', '').replace("'", "").strip()
+                
+                # Validate title length (2-5 words, max 50 chars)
+                word_count = len(title.split())
+                if 2 <= word_count <= 5 and len(title) <= 50:
+                    return title
+        
+        # Fallback to basic logic if AI fails or produces invalid title
+        return generate_basic_conversation_title(user_messages[0])
+        
+    except Exception as e:
+        print(f"ERROR: AI title generation failed: {str(e)}")
+        # Fallback to basic logic
+        return generate_basic_conversation_title(conversation_messages[0].get('message', 'New Conversation') if conversation_messages else 'New Conversation')
+
+
+def generate_basic_conversation_title(user_message):
+    """Fallback basic logic for conversation title generation"""
+    if not user_message:
+        return "New Conversation"
+        
+    message_lower = user_message.lower()
+    
+    # Look for specific meal planning topics
+    if "meal plan" in message_lower or "menu" in message_lower:
+        if "week" in message_lower:
+            return "Weekly Meal Plan"
+        elif "day" in message_lower:
+            return "Daily Menu Planning"
+        else:
+            return "Meal Plan Request"
+    elif "recipe" in message_lower:
+        if "chicken" in message_lower:
+            return "Chicken Recipe Ideas"
+        elif "vegetarian" in message_lower or "vegan" in message_lower:
+            return "Vegetarian Recipes"
+        else:
+            return "Recipe Suggestions"
+    elif "budget" in message_lower:
+        return "Budget Meal Planning"
+    elif "pantry" in message_lower or "ingredients" in message_lower:
+        return "Pantry-Based Meals"
+    elif "diet" in message_lower or "keto" in message_lower or "paleo" in message_lower:
+        return "Diet-Specific Planning"
+    else:
+        # Default to a truncated version of the user message
+        return user_message[:50] + "..." if len(user_message) > 50 else user_message
 
 
 def generate_chat_response(message, context, user_id):
@@ -1738,22 +2142,50 @@ def build_chat_prompt(message, context, user_id):
     pantry_items = get_user_pantry_items(user_id)
     pantry_text = ", ".join([f"{item['item_name']} ({item['quantity']} {item['unit'] or ''})" for item in pantry_items[:10]]) if pantry_items else "No pantry items available"
     
+    # Get selected pantry items if any
+    selected_items = context.get("selected_pantry_items", [])
+    selected_text = ", ".join([f"{item['item_name']} ({item['quantity']} {item['unit'] or ''})" for item in selected_items]) if selected_items else "None selected"
+    
     # Build restrictions text
-    restrictions_text = ", ".join(context["food_restrictions"]) if context["food_restrictions"] else "None specified"
+    restrictions_text = ", ".join([r for r in context["food_restrictions"] if r.strip()]) if context["food_restrictions"] else "None specified"
     
     # Build conversation history
     history_text = ""
+    conversation_stage = "initial"
+    user_preferences = []
+    
     if context["conversation_history"]:
-        for i, msg in enumerate(context["conversation_history"][-6:]):  # Last 6 messages for context
+        for i, msg in enumerate(context["conversation_history"][-8:]):  # Last 8 messages for context
             sender = "User" if msg.get("sender") == "user" else "Assistant"
             history_text += f"{sender}: {msg.get('message', '')}\n"
+            
+            # Analyze conversation stage and user preferences
+            msg_text = msg.get('message', '').lower()
+            if 'meal plan' in msg_text or 'menu' in msg_text:
+                conversation_stage = "meal_planning"
+            elif 'recipe' in msg_text:
+                conversation_stage = "recipe_requests" 
+            elif 'budget' in msg_text:
+                user_preferences.append("budget-conscious")
+            elif 'quick' in msg_text or 'fast' in msg_text or 'easy' in msg_text:
+                user_preferences.append("quick-cooking")
+            elif 'healthy' in msg_text or 'nutrition' in msg_text:
+                user_preferences.append("health-focused")
+    else:
+        history_text = "This is the start of a new conversation."
+    
+    # Generate dynamic suggestions based on context
+    suggestions_hint = generate_suggestion_hints(conversation_stage, user_preferences, pantry_items, context)
     
     prompt = f"""You are an expert meal planning assistant. Help the user create personalized meal plans based on their needs, pantry items, and preferences.
 
 CONTEXT:
 - Available pantry items: {pantry_text}
+- Selected pantry items: {selected_text}
 - Food restrictions: {restrictions_text}
 - Dietary preference: {context['dietary_preference']}
+- Conversation stage: {conversation_stage}
+- User preferences detected: {', '.join(user_preferences) if user_preferences else 'None detected'}
 
 CONVERSATION HISTORY:
 {history_text}
@@ -1763,15 +2195,19 @@ USER MESSAGE: {message}
 INSTRUCTIONS:
 1. Respond in a conversational, helpful tone
 2. Ask clarifying questions when needed
-3. Suggest meal plans based on available ingredients
+3. Suggest meal plans based on available and selected ingredients
 4. Consider dietary preferences and restrictions
 5. Keep responses concise but informative
 6. If the user wants to generate a meal plan, gather: days, start date, special requests
+7. Generate contextually relevant suggestions based on conversation stage and user preferences
+
+SUGGESTION GUIDELINES:
+{suggestions_hint}
 
 RESPONSE FORMAT (JSON):
 {{
     "message": "Your conversational response",
-    "suggestions": ["Quick suggestion 1", "Quick suggestion 2"],
+    "suggestions": ["Contextual suggestion 1", "Contextual suggestion 2", "Follow-up suggestion 3"],
     "action_required": false,
     "meal_plan_data": null
 }}
@@ -1790,6 +2226,43 @@ If ready to generate a meal plan, set action_required to true and include meal_p
 Respond with valid JSON only:"""
     
     return prompt
+
+
+def generate_suggestion_hints(conversation_stage, user_preferences, pantry_items, context):
+    """Generate contextual suggestion hints for the AI"""
+    hints = []
+    
+    if conversation_stage == "initial":
+        hints.append("- Offer to create meal plans, suggest recipes, or help with pantry management")
+        hints.append("- Ask about their cooking goals, time constraints, or dietary needs")
+    elif conversation_stage == "meal_planning":
+        hints.append("- Suggest different meal plan durations (3-day, weekly)")
+        hints.append("- Offer to focus on specific meal types or cooking methods")
+        hints.append("- Recommend budget ranges or prep time options")
+    elif conversation_stage == "recipe_requests":
+        hints.append("- Suggest specific recipes using their pantry items")
+        hints.append("- Offer cuisine variations or cooking techniques")
+        hints.append("- Recommend meal prep or batch cooking options")
+    
+    # Add preference-based hints
+    if "budget-conscious" in user_preferences:
+        hints.append("- Focus on affordable ingredients and bulk cooking")
+    if "quick-cooking" in user_preferences:
+        hints.append("- Emphasize 30-minute meals and one-pot recipes")
+    if "health-focused" in user_preferences:
+        hints.append("- Highlight nutritional benefits and balanced meals")
+    
+    # Add pantry-based hints
+    if pantry_items:
+        common_ingredients = [item['item_name'].lower() for item in pantry_items[:5]]
+        if any(meat in str(common_ingredients) for meat in ['chicken', 'beef', 'pork']):
+            hints.append("- Suggest protein-centered meals using available meats")
+        if any(veg in str(common_ingredients) for veg in ['tomato', 'onion', 'carrot', 'spinach']):
+            hints.append("- Recommend vegetable-forward recipes")
+        if any(grain in str(common_ingredients) for grain in ['rice', 'pasta', 'bread']):
+            hints.append("- Offer grain-based meal foundations")
+    
+    return "\n".join(hints) if hints else "- Provide helpful, contextual suggestions based on the conversation"
 
 
 def get_user_pantry_items(user_id):

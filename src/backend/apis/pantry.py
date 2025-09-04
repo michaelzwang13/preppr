@@ -18,22 +18,46 @@ def get_pantry_items():
     storage_filter = request.args.get("storage_type", "")
     category_filter = request.args.get("category", "")
     expiry_filter = request.args.get("expiry_status", "")
+    search_query = request.args.get("search", "").strip()
 
     try:
-        # Build query with filters - get basic item info
-        query = """
-            SELECT p.*, 
-                   CASE 
-                       WHEN p.expiration_date IS NULL THEN 'no_expiry'
-                       WHEN p.expiration_date < CURDATE() THEN 'expired'
-                       WHEN p.expiration_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 'expiring_soon'
-                       ELSE 'fresh'
-                   END as expiry_status,
-                   DATEDIFF(p.expiration_date, CURDATE()) as days_until_expiry
-            FROM pantry_items p
-            WHERE p.user_id = %s AND p.is_consumed = FALSE
-        """
-        params = [user_ID]
+        # Build query with filters and search - join with tags for comprehensive search
+        if search_query:
+            query = """
+                SELECT DISTINCT p.*, 
+                       CASE 
+                           WHEN p.expiration_date IS NULL THEN 'no_expiry'
+                           WHEN p.expiration_date < CURDATE() THEN 'expired'
+                           WHEN p.expiration_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 'expiring_soon'
+                           ELSE 'fresh'
+                       END as expiry_status,
+                       DATEDIFF(p.expiration_date, CURDATE()) as days_until_expiry
+                FROM pantry_items p
+                LEFT JOIN pantry_item_tags pit ON p.pantry_item_id = pit.pantry_item_id
+                LEFT JOIN pantry_tags pt ON pit.tag_id = pt.tag_id
+                WHERE p.user_id = %s AND p.is_consumed = FALSE
+                AND (
+                    p.item_name LIKE %s 
+                    OR p.category LIKE %s 
+                    OR pt.tag_name LIKE %s
+                )
+            """
+            search_param = f"%{search_query}%"
+            params = [user_ID, search_param, search_param, search_param]
+        else:
+            query = """
+                SELECT p.*, 
+                       CASE 
+                           WHEN p.expiration_date IS NULL THEN 'no_expiry'
+                           WHEN p.expiration_date < CURDATE() THEN 'expired'
+                           WHEN p.expiration_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 'expiring_soon'
+                           ELSE 'fresh'
+                       END as expiry_status,
+                       DATEDIFF(p.expiration_date, CURDATE()) as days_until_expiry
+                FROM pantry_items p
+                WHERE p.user_id = %s AND p.is_consumed = FALSE
+            """
+            params = [user_ID]
 
         # Add storage filter
         if storage_filter:
