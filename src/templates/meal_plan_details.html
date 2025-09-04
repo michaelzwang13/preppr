@@ -1600,6 +1600,7 @@
         nutritionTrackingEnabled: JSON.parse('{{ nutrition_tracking_enabled | tojson }}'),
       };
     </script>
+    <script src="{{ url_for('static', filename='js/meal_modal.js') }}"></script>
     <script src="{{ url_for('static', filename='js/meal_plan_details.js') }}"></script>
   </body>
 </html>

@@ -95,10 +95,10 @@ def get_meal_nutrition(meal_id):
                 "macros": {
                     "protein": filtered_nutrition["protein"],
                     "carbs": filtered_nutrition["carbs"],
-                    "fat": filtered_nutrition["fat"]
+                    "fat": filtered_nutrition["fat"],
+                    "fiber": filtered_nutrition["fiber"],
+                    "sodium": filtered_nutrition["sodium"]
                 },
-                "fiber": filtered_nutrition["fiber"],
-                "sodium": filtered_nutrition["sodium"],
                 "servings": nutrition_data["servings"],
                 "serving_size": nutrition_data["serving_size"],
                 "source_type": nutrition_data["source_type"],
