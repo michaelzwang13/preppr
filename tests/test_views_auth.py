@@ -9,6 +9,7 @@ import json
 import re
 from unittest.mock import patch, MagicMock
 from src.database import get_db
+from src.auth_utils import AuthUtils
 
 
 @pytest.mark.auth
@@ -379,19 +380,13 @@ class TestCartRestoration:
     
     def test_restore_active_cart_success(self, client, auth):
         """Test successful cart restoration after login."""
-        # Use the existing logged_in_user fixture approach
+        # Register the user properly using the auth fixture
+        auth.register(user_id='cart_user', email='cart@test.com', password='testpass123')
+        
+        # Create active cart for user
         with client.application.app_context():
             db = get_db()
             cursor = db.cursor()
-            
-            # Ensure user exists in database for this test
-            cursor.execute("""
-                INSERT INTO user_account (user_ID, password, email, created_at) 
-                VALUES (%s, %s, %s, NOW())
-                ON DUPLICATE KEY UPDATE user_ID = user_ID
-            """, ('cart_user', auth.hash_password('testpass123'), 'cart@test.com'))
-            
-            # Create active cart for user
             cursor.execute("""
                 INSERT INTO shopping_cart (user_ID, store_name, status, created_at)
                 VALUES (%s, %s, %s, NOW())
@@ -412,17 +407,8 @@ class TestCartRestoration:
     
     def test_restore_active_cart_no_cart(self, client, auth):
         """Test cart restoration when user has no active cart."""
-        # Create user in database without any carts
-        with client.application.app_context():
-            db = get_db()
-            cursor = db.cursor()
-            
-            cursor.execute("""
-                INSERT INTO user_account (user_ID, password, email, created_at) 
-                VALUES (%s, %s, %s, NOW())
-                ON DUPLICATE KEY UPDATE user_ID = user_ID
-            """, ('no_cart_user', auth.hash_password('testpass123'), 'nocart@test.com'))
-            cursor.close()
+        # Register the user properly using the auth fixture
+        auth.register(user_id='no_cart_user', email='nocart@test.com', password='testpass123')
         
         # Login user
         response = client.post('/login', data={
@@ -437,17 +423,13 @@ class TestCartRestoration:
     
     def test_restore_active_cart_multiple_carts(self, client, auth):
         """Test cart restoration selects most recent active cart."""
-        # Create user and multiple carts in database
+        # Register the user properly using the auth fixture
+        auth.register(user_id='multi_cart_user', email='multi@test.com', password='testpass123')
+        
+        # Create multiple carts in database
         with client.application.app_context():
             db = get_db()
             cursor = db.cursor()
-            
-            # Ensure user exists
-            cursor.execute("""
-                INSERT INTO user_account (user_ID, password, email, created_at) 
-                VALUES (%s, %s, %s, NOW())
-                ON DUPLICATE KEY UPDATE user_ID = user_ID
-            """, ('multi_cart_user', auth.hash_password('testpass123'), 'multi@test.com'))
             
             # Create multiple active carts (older first)
             cursor.execute("""
@@ -477,17 +459,13 @@ class TestCartRestoration:
     
     def test_restore_active_cart_ignores_purchased_carts(self, client, auth):
         """Test cart restoration ignores purchased carts."""
-        # Create user and purchased cart in database
+        # Register the user properly using the auth fixture
+        auth.register(user_id='purchased_cart_user', email='purchased@test.com', password='testpass123')
+        
+        # Create purchased cart in database
         with client.application.app_context():
             db = get_db()
             cursor = db.cursor()
-            
-            # Ensure user exists
-            cursor.execute("""
-                INSERT INTO user_account (user_ID, password, email, created_at) 
-                VALUES (%s, %s, %s, NOW())
-                ON DUPLICATE KEY UPDATE user_ID = user_ID
-            """, ('purchased_cart_user', auth.hash_password('testpass123'), 'purchased@test.com'))
             
             # Create purchased cart (should be ignored)
             cursor.execute("""
@@ -510,17 +488,8 @@ class TestCartRestoration:
     
     def test_restore_active_cart_database_error(self, client, auth):
         """Test cart restoration handles database errors gracefully."""
-        # Create user normally first
-        with client.application.app_context():
-            db = get_db()
-            cursor = db.cursor()
-            
-            cursor.execute("""
-                INSERT INTO user_account (user_ID, password, email, created_at) 
-                VALUES (%s, %s, %s, NOW())
-                ON DUPLICATE KEY UPDATE user_ID = user_ID
-            """, ('error_user', auth.hash_password('testpass123'), 'error@test.com'))
-            cursor.close()
+        # Register the user properly using the auth fixture
+        auth.register(user_id='error_user', email='error@test.com', password='testpass123')
         
         # Mock the restore_active_cart function to raise an exception
         with patch('src.backend.views.auth.restore_active_cart') as mock_restore:
