@@ -379,12 +379,17 @@ class TestCartRestoration:
     
     def test_restore_active_cart_success(self, client, auth):
         """Test successful cart restoration after login."""
-        # Register and create user with active cart
-        auth.register(user_id='cart_user', password='testpass123')
-        
+        # Use the existing logged_in_user fixture approach
         with client.application.app_context():
             db = get_db()
             cursor = db.cursor()
+            
+            # Ensure user exists in database for this test
+            cursor.execute("""
+                INSERT INTO user_account (user_ID, password, email, created_at) 
+                VALUES (%s, %s, %s, NOW())
+                ON DUPLICATE KEY UPDATE user_ID = user_ID
+            """, ('cart_user', auth.hash_password('testpass123'), 'cart@test.com'))
             
             # Create active cart for user
             cursor.execute("""
@@ -407,8 +412,17 @@ class TestCartRestoration:
     
     def test_restore_active_cart_no_cart(self, client, auth):
         """Test cart restoration when user has no active cart."""
-        # Register user without any carts
-        auth.register(user_id='no_cart_user', password='testpass123')
+        # Create user in database without any carts
+        with client.application.app_context():
+            db = get_db()
+            cursor = db.cursor()
+            
+            cursor.execute("""
+                INSERT INTO user_account (user_ID, password, email, created_at) 
+                VALUES (%s, %s, %s, NOW())
+                ON DUPLICATE KEY UPDATE user_ID = user_ID
+            """, ('no_cart_user', auth.hash_password('testpass123'), 'nocart@test.com'))
+            cursor.close()
         
         # Login user
         response = client.post('/login', data={
@@ -423,12 +437,17 @@ class TestCartRestoration:
     
     def test_restore_active_cart_multiple_carts(self, client, auth):
         """Test cart restoration selects most recent active cart."""
-        # Register user
-        auth.register(user_id='multi_cart_user', password='testpass123')
-        
+        # Create user and multiple carts in database
         with client.application.app_context():
             db = get_db()
             cursor = db.cursor()
+            
+            # Ensure user exists
+            cursor.execute("""
+                INSERT INTO user_account (user_ID, password, email, created_at) 
+                VALUES (%s, %s, %s, NOW())
+                ON DUPLICATE KEY UPDATE user_ID = user_ID
+            """, ('multi_cart_user', auth.hash_password('testpass123'), 'multi@test.com'))
             
             # Create multiple active carts (older first)
             cursor.execute("""
@@ -458,12 +477,17 @@ class TestCartRestoration:
     
     def test_restore_active_cart_ignores_purchased_carts(self, client, auth):
         """Test cart restoration ignores purchased carts."""
-        # Register user
-        auth.register(user_id='purchased_cart_user', password='testpass123')
-        
+        # Create user and purchased cart in database
         with client.application.app_context():
             db = get_db()
             cursor = db.cursor()
+            
+            # Ensure user exists
+            cursor.execute("""
+                INSERT INTO user_account (user_ID, password, email, created_at) 
+                VALUES (%s, %s, %s, NOW())
+                ON DUPLICATE KEY UPDATE user_ID = user_ID
+            """, ('purchased_cart_user', auth.hash_password('testpass123'), 'purchased@test.com'))
             
             # Create purchased cart (should be ignored)
             cursor.execute("""
@@ -484,30 +508,34 @@ class TestCartRestoration:
         with client.session_transaction() as sess:
             assert 'cart_ID' not in sess
     
-    @patch('src.backend.views.auth.get_db')
-    def test_restore_active_cart_database_error(self, mock_get_db, client, auth):
+    def test_restore_active_cart_database_error(self, client, auth):
         """Test cart restoration handles database errors gracefully."""
-        # Setup mock to raise exception
-        mock_cursor = MagicMock()
-        mock_cursor.execute.side_effect = Exception("Database error")
-        mock_db = MagicMock()
-        mock_db.cursor.return_value = mock_cursor
-        mock_get_db.return_value = mock_db
+        # Create user normally first
+        with client.application.app_context():
+            db = get_db()
+            cursor = db.cursor()
+            
+            cursor.execute("""
+                INSERT INTO user_account (user_ID, password, email, created_at) 
+                VALUES (%s, %s, %s, NOW())
+                ON DUPLICATE KEY UPDATE user_ID = user_ID
+            """, ('error_user', auth.hash_password('testpass123'), 'error@test.com'))
+            cursor.close()
         
-        # Register user first (use real database)
-        mock_get_db.side_effect = None
-        auth.register(user_id='error_user', password='testpass123')
-        
-        # Reset mock for login
-        mock_get_db.side_effect = [mock_get_db.return_value, mock_db]  # First call succeeds, second fails
-        
-        # Login should still succeed even if cart restoration fails
-        response = client.post('/login', data={
-            'user_ID': 'error_user',
-            'password': 'testpass123'
-        })
-        assert response.status_code == 302
-        assert '/home' in response.location
+        # Mock the restore_active_cart function to raise an exception
+        with patch('src.backend.views.auth.restore_active_cart') as mock_restore:
+            mock_restore.side_effect = Exception("Cart restoration error")
+            
+            # Login should still succeed even if cart restoration fails
+            response = client.post('/login', data={
+                'user_ID': 'error_user',
+                'password': 'testpass123'
+            })
+            assert response.status_code == 302
+            assert '/home' in response.location
+            
+            # Verify restore function was called
+            mock_restore.assert_called_once_with('error_user')
 
 
 @pytest.mark.auth
