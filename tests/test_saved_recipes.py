@@ -811,8 +811,15 @@ class TestSavedRecipesErrorHandling:
         recipe_details = json.loads(response.data)
         assert len(recipe_details['recipe']['ingredients']) == 2
     
-    def test_update_with_no_changes(self, client, logged_in_user):
+    @patch('src.subscription_utils.increment_usage')
+    @patch('src.subscription_utils.get_current_usage')
+    @patch('src.subscription_utils.check_subscription_limit')
+    def test_update_with_no_changes(self, mock_check_limit, mock_get_usage, mock_increment_usage, client, logged_in_user):
         """Test updating recipe with no actual changes."""
+        # Mock subscription checks to allow recipe creation
+        mock_get_usage.return_value = 0
+        mock_check_limit.return_value = None
+        
         # Create recipe
         recipe_data = {
             'recipe_name': 'No Change Test',
@@ -855,8 +862,15 @@ class TestSavedRecipesErrorHandling:
         assert data['success'] == False
         assert data['message'] == 'Recipe not found'
     
-    def test_use_recipe_missing_required_fields(self, client, logged_in_user):
+    @patch('src.subscription_utils.increment_usage')
+    @patch('src.subscription_utils.get_current_usage')
+    @patch('src.subscription_utils.check_subscription_limit')
+    def test_use_recipe_missing_required_fields(self, mock_check_limit, mock_get_usage, mock_increment_usage, client, logged_in_user):
         """Test using recipe with missing required fields."""
+        # Mock subscription checks to allow recipe creation
+        mock_get_usage.return_value = 0
+        mock_check_limit.return_value = None
+        
         # Create recipe
         recipe_data = {
             'recipe_name': 'Use Test Recipe',
@@ -922,8 +936,15 @@ class TestSavedRecipesPremiumFeatures:
 class TestSavedRecipesDataTypes:
     """Test data type handling and JSON serialization."""
     
-    def test_custom_tags_json_handling(self, client, logged_in_user):
+    @patch('src.subscription_utils.increment_usage')
+    @patch('src.subscription_utils.get_current_usage')
+    @patch('src.subscription_utils.check_subscription_limit')
+    def test_custom_tags_json_handling(self, mock_check_limit, mock_get_usage, mock_increment_usage, client, logged_in_user):
         """Test proper handling of custom tags as JSON."""
+        # Mock subscription checks to allow recipe creation
+        mock_get_usage.return_value = 0
+        mock_check_limit.return_value = None
+        
         recipe_data = {
             'recipe_name': 'Tags Test Recipe',
             'meal_type': 'snack',
@@ -941,8 +962,15 @@ class TestSavedRecipesDataTypes:
         recipe_details = json.loads(response.data)
         assert recipe_details['recipe']['custom_tags'] == ['healthy', 'quick', 'vegetarian']
     
-    def test_numeric_fields_conversion(self, client, logged_in_user):
+    @patch('src.subscription_utils.increment_usage')
+    @patch('src.subscription_utils.get_current_usage')
+    @patch('src.subscription_utils.check_subscription_limit')
+    def test_numeric_fields_conversion(self, mock_check_limit, mock_get_usage, mock_increment_usage, client, logged_in_user):
         """Test proper conversion of numeric fields."""
+        # Mock subscription checks to allow recipe creation
+        mock_get_usage.return_value = 0
+        mock_check_limit.return_value = None
+        
         recipe_data = {
             'recipe_name': 'Numeric Test Recipe',
             'meal_type': 'dinner',
@@ -976,8 +1004,15 @@ class TestSavedRecipesDataTypes:
         assert recipe['ingredients'][0]['quantity'] == 2.5
         assert recipe['ingredients'][0]['estimated_cost'] == 3.50
     
-    def test_date_formatting(self, client, logged_in_user):
+    @patch('src.subscription_utils.increment_usage')
+    @patch('src.subscription_utils.get_current_usage')
+    @patch('src.subscription_utils.check_subscription_limit')
+    def test_date_formatting(self, mock_check_limit, mock_get_usage, mock_increment_usage, client, logged_in_user):
         """Test proper date formatting in responses."""
+        # Mock subscription checks to allow recipe creation
+        mock_get_usage.return_value = 0
+        mock_check_limit.return_value = None
+        
         # Create and use a recipe to generate dates
         recipe_data = {
             'recipe_name': 'Date Test Recipe',

@@ -160,7 +160,7 @@ class TestShoppingHistoryAPI:
                 
                 # Add items to cart
                 cursor.execute("""
-                    INSERT INTO cart_item (cart_ID, itemName, price, quantity)
+                    INSERT INTO cart_item (cart_ID, item_name, price, quantity)
                     VALUES (%s, %s, %s, %s)
                 """, (cart_id, f'Item {i+1}', 10.99, 1))
             
@@ -294,7 +294,7 @@ class TestShoppingTripManagement:
             
             # Add item to cart
             cursor.execute("""
-                INSERT INTO cart_item (cart_ID, itemName, price, quantity)
+                INSERT INTO cart_item (cart_ID, item_name, price, quantity)
                 VALUES (%s, %s, %s, %s)
             """, (cart_id, 'Test Item', 15.99, 2))
             
@@ -324,7 +324,8 @@ class TestShoppingTripManagement:
         """Test finishing shopping when no cart exists."""
         response = client.post('/finish-shopping')
         assert response.status_code == 302
-        assert '/home' in response.location
+        # When no cart exists, it creates a new one and redirects to pantry transfer
+        assert '/pantry-transfer' in response.location
     
     def test_cancel_shopping_deletes_cart(self, client, logged_in_user):
         """Test canceling shopping deletes the cart and items."""
@@ -340,7 +341,7 @@ class TestShoppingTripManagement:
             
             # Add item to cart
             cursor.execute("""
-                INSERT INTO cart_item (cart_ID, itemName, price, quantity)
+                INSERT INTO cart_item (cart_ID, item_name, price, quantity)
                 VALUES (%s, %s, %s, %s)
             """, (cart_id, 'Test Item', 10.99, 1))
             
@@ -417,7 +418,7 @@ class TestPantryTransfer:
             
             # Add items to cart
             cursor.execute("""
-                INSERT INTO cart_item (cart_ID, itemName, price, quantity)
+                INSERT INTO cart_item (cart_ID, item_name, price, quantity)
                 VALUES (%s, %s, %s, %s)
             """, (cart_id, 'Test Item', 12.99, 1))
             
@@ -452,9 +453,9 @@ class TestMealPlanDetails:
             db = get_db()
             cursor = db.cursor()
             cursor.execute("""
-                INSERT INTO meal_plan_sessions (user_id, session_name, created_at)
-                VALUES (%s, %s, %s)
-            """, ('test_user', 'Test Plan', datetime.now()))
+                INSERT INTO meal_plan_sessions (user_id, session_name, start_date, end_date, total_days)
+                VALUES (%s, %s, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 7 DAY), 7)
+            """, ('test_user', 'Test Plan'))
             plan_id = cursor.lastrowid
             cursor.close()
         
@@ -468,9 +469,9 @@ class TestMealPlanDetails:
             db = get_db()
             cursor = db.cursor()
             cursor.execute("""
-                INSERT INTO meal_plan_sessions (user_id, session_name, created_at)
-                VALUES (%s, %s, %s)
-            """, ('other_user', 'Other Plan', datetime.now()))
+                INSERT INTO meal_plan_sessions (user_id, session_name, start_date, end_date, total_days)
+                VALUES (%s, %s, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 7 DAY), 7)
+            """, ('other_user', 'Other Plan'))
             plan_id = cursor.lastrowid
             cursor.close()
         
@@ -616,12 +617,12 @@ class TestRetrieveTotals:
             
             # Add items
             cursor.execute("""
-                INSERT INTO cart_item (cart_ID, itemName, price, quantity)
+                INSERT INTO cart_item (cart_ID, item_name, price, quantity)
                 VALUES (%s, %s, %s, %s)
             """, (cart_id, 'Item 1', 10.99, 2))
             
             cursor.execute("""
-                INSERT INTO cart_item (cart_ID, itemName, price, quantity)
+                INSERT INTO cart_item (cart_ID, item_name, price, quantity)
                 VALUES (%s, %s, %s, %s)
             """, (cart_id, 'Item 2', 5.50, 1))
             
@@ -668,7 +669,7 @@ class TestHomePageIntegration:
                 
                 # Add items to each cart
                 cursor.execute("""
-                    INSERT INTO cart_item (cart_ID, itemName, price, quantity)
+                    INSERT INTO cart_item (cart_ID, item_name, price, quantity)
                     VALUES (%s, %s, %s, %s)
                 """, (cart_id, f'Item {i+1}', (i+1) * 5.99, 1))
             
@@ -718,7 +719,7 @@ class TestHomePageIntegration:
                 cart_id = cursor.lastrowid
                 
                 cursor.execute("""
-                    INSERT INTO cart_item (cart_ID, itemName, price, quantity)
+                    INSERT INTO cart_item (cart_ID, item_name, price, quantity)
                     VALUES (%s, %s, %s, %s)
                 """, (cart_id, f'Item {i+1}', 9.99, 1))
             
@@ -750,7 +751,7 @@ class TestBudgetIntegration:
             
             # Add expensive item
             cursor.execute("""
-                INSERT INTO cart_item (cart_ID, itemName, price, quantity)
+                INSERT INTO cart_item (cart_ID, item_name, price, quantity)
                 VALUES (%s, %s, %s, %s)
             """, (cart_id, 'Expensive Item', 99.99, 1))
             
