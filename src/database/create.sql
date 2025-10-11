@@ -1,5 +1,5 @@
 -- Select the database
-USE hacknyu25_test;
+USE hacknyu25;
 
 -- Create the user table (renamed to user_account)
 CREATE TABLE user_account (
