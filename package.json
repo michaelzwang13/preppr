@@ -1,0 +1,24 @@
+{
+  "name": "hacknyu",
+  "private": true,
+  "packageManager": "bun@1.1.0",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "bun run turbo run dev",
+    "dev:web": "bun run turbo run dev --filter=web",
+    "dev:backend": "cd apps/backend && bun run dev",
+    "build": "bun run turbo run build",
+    "build:web": "bun run turbo run build --filter=web",
+    "lint": "bun run turbo run lint",
+    "typecheck": "bun run turbo run typecheck",
+    "test": "bun run turbo run test",
+    "test:backend": "cd apps/backend && bun run test"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "3",
+    "turbo": "latest",
+    "typescript": "^5.6.0"
+  }
+}

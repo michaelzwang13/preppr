@@ -1,0 +1,5 @@
+# This file references the main requirements.txt at the root
+# For now, install dependencies from the root level:
+# pip install -r ../../requirements.txt
+
+# In the future, you can migrate dependencies here for better isolation

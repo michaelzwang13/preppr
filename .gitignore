@@ -164,4 +164,20 @@ preppr-mobile/
 *.pem
 
 # node
+node_modules/
 preppr-mobile/
+
+# Turborepo
+.turbo/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment variables (per-app)
+apps/*/.env
+apps/*/.env.local
+
+# Coverage reports
+coverage/
