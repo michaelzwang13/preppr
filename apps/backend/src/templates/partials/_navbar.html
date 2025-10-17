@@ -1,0 +1,100 @@
+<!-- Header -->
+<header class="header">
+  <div class="nav-container">
+    <a href="{{ url_for('shopping.home') }}" class="logo">
+      <img src="{{ url_for('static', filename='images/preppr-logo.png') }}" alt="Preppr Logo" style="width: 40px; height: 40px; border-radius: var(--radius-lg);">
+      Preppr
+    </a>
+    
+    <nav>
+      <ul class="nav-links">
+        <li>
+          <a href="{{ url_for('shopping.home') }}" class="nav-link">
+            <i class="fas fa-home" style="margin-right: 6px; font-size: 0.85em;"></i>Home
+          </a>
+        </li>
+        <li class="nav-dropdown">
+          <a href="#" class="nav-link dropdown-toggle">
+            <i class="fas fa-shopping-cart" style="margin-right: 6px; font-size: 0.85em;"></i>Shopping
+            <i class="fas fa-chevron-down dropdown-arrow" style="margin-left: 6px; font-size: 0.7em;"></i>
+          </a>
+          <ul class="dropdown-menu">
+            <li><a href="{{ url_for('shopping.shopping_trip') }}" class="dropdown-link">
+              <i class="fas fa-cart-plus"></i>New Trip
+            </a></li>
+            <li><a href="{{ url_for('shopping.shopping_lists') }}" class="dropdown-link">
+              <i class="fas fa-list-ul"></i>Lists
+            </a></li>
+            <li><a href="{{ url_for('shopping.shopping_history') }}" class="dropdown-link">
+              <i class="fas fa-history"></i>History
+            </a></li>
+          </ul>
+        </li>
+        <li class="nav-dropdown">
+          <a href="#" class="nav-link dropdown-toggle">
+            <i class="fas fa-chart-line" style="margin-right: 6px; font-size: 0.85em;"></i>Analytics
+            <i class="fas fa-chevron-down dropdown-arrow" style="margin-left: 6px; font-size: 0.7em;"></i>
+          </a>
+          <ul class="dropdown-menu">
+            <li>
+              <a href="{{ url_for('shopping.budget') }}" class="dropdown-link">
+                <i class="fas fa-wallet"></i>Budget
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('shopping.nutrition') }}" class="dropdown-link">
+                <i class="fas fa-chart-pie"></i>Nutrition
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li class="nav-dropdown">
+          <a href="#" class="nav-link dropdown-toggle">
+            <i class="fas fa-utensils" style="margin-right: 6px; font-size: 0.85em;"></i>Kitchen
+            <i class="fas fa-chevron-down dropdown-arrow" style="margin-left: 6px; font-size: 0.7em;"></i>
+          </a>
+          <ul class="dropdown-menu">
+            <li><a href="{{ url_for('shopping.pantry') }}" class="dropdown-link">
+              <i class="fas fa-warehouse"></i>Pantry
+            </a></li>
+            <li><a href="{{ url_for('shopping.recipes') }}" class="dropdown-link">
+              <i class="fas fa-book-open"></i>Recipes
+            </a></li>
+          </ul>
+        </li>
+        <li><a href="{{ url_for('shopping.meal_plans') }}" class="nav-link">
+          <i class="fas fa-calendar-alt" style="margin-right: 6px; font-size: 0.85em;"></i>Meal Plans
+        </a></li>
+        <li class="nav-dropdown">
+          <a href="#" class="nav-link dropdown-toggle">
+            <i class="fas fa-user" style="margin-right: 6px; font-size: 0.85em;"></i>Account
+            <i class="fas fa-chevron-down dropdown-arrow" style="margin-left: 6px; font-size: 0.7em;"></i>
+          </a>
+          <ul class="dropdown-menu">
+            {% if session.get('user_ID') %}
+              {% set user_subscription = get_user_limits_status(session['user_ID']) %}
+              {% if user_subscription.tier == 'free' %}
+            <li><a href="{{ url_for('auth.upgrade') }}" class="dropdown-link upgrade-link">
+              <i class="fas fa-crown"></i>Upgrade
+            </a></li>
+              {% endif %}
+            {% endif %}
+            <li><a href="{{ url_for('auth.settings') }}" class="dropdown-link">
+              <i class="fas fa-cog"></i>Settings
+            </a></li>
+            <li><a href="{{ url_for('auth.logout') }}" class="dropdown-link logout">
+              <i class="fas fa-sign-out-alt"></i>Logout
+            </a></li>
+          </ul>
+        </li>
+      </ul>
+      
+      <button class="mobile-menu-btn" aria-label="Toggle mobile menu">
+        <i class="fas fa-bars"></i>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<!-- Theme toggle script -->
+<script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>

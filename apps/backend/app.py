@@ -1,10 +1,3 @@
-import sys
-from pathlib import Path
-
-# Add the root directory to the Python path to import from src/
-root_dir = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(root_dir))
-
 from src import create_app
 import os
 import argparse

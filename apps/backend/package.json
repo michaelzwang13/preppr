@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "python3 app.py --local",
     "dev:docker": "python3 app.py",
-    "test": "cd ../.. && python3 -m pytest tests/ -v",
-    "test:coverage": "cd ../.. && python3 -m pytest tests/ --cov=src --cov-report=html --cov-report=term"
+    "test": "python3 -m pytest tests/ -v",
+    "test:coverage": "python3 -m pytest tests/ --cov=src --cov-report=html --cov-report=term"
   },
   "description": "Flask backend for HackNYU"
 }
