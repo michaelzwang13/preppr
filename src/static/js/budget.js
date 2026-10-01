@@ -62,16 +62,24 @@ function initSpendingChart() {
   });
 }
 
+const currencyFormat = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+});
+
 // Update budget stats
 function updateBudgetStats(budget, spent) {
   const remaining = budget - spent;
   const dailyAvg = spent / new Date().getDate();
 
   document.getElementById("monthlyBudget").textContent =
-    "$" + budget.toLocaleString();
-  document.getElementById("totalSpent").textContent = "$" + spent.toFixed(2);
-  document.getElementById("remaining").textContent = "$" + remaining.toFixed(2);
-  document.getElementById("avgDaily").textContent = "$" + dailyAvg.toFixed(2);
+    currencyFormat.format(budget);
+  document.getElementById("totalSpent").textContent =
+    currencyFormat.format(spent);
+  document.getElementById("remaining").textContent =
+    currencyFormat.format(remaining);
+  document.getElementById("avgDaily").textContent =
+    currencyFormat.format(dailyAvg);
 
   // Update stat card colors based on remaining budget
   const remainingCard = document
