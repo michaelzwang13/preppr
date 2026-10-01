@@ -19,6 +19,9 @@ def get_db():
                 db=current_app.config["DB_NAME"],
                 charset="utf8mb4",
                 cursorclass=pymysql.cursors.DictCursor,
+                # Aurora Serverless v2 scales to zero when idle; a resume takes
+                # ~10-15s, longer than PyMySQL's 10s default.
+                connect_timeout=30,
             )
             logger.debug(
                 "Database connection established",
