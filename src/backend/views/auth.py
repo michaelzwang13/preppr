@@ -96,6 +96,8 @@ def login():
             cursor.close()
 
             if data and verify_password_bcrypt(password, data["password"]):
+                # Usernames match case-insensitively; keep the stored spelling
+                user_ID = data["user_ID"]
                 session["user_ID"] = user_ID
                 logger.info(
                     "Login successful",
@@ -151,7 +153,7 @@ def register():
 
         # Email format validation
         import re
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$'
         if not re.match(email_pattern, email_address):
             error = "Please enter a valid email address"
             return render_template("register.html", error=error)
@@ -524,9 +526,11 @@ def api_login():
                 },
             )
             return jsonify({"error": "Invalid username or password"}), 401
-            
+
+        # Usernames match case-insensitively; keep the stored spelling
+        user_id = user_data["user_ID"]
+
         # Generate JWT tokens
-        from src.auth_utils import AuthUtils
         tokens = AuthUtils.generate_tokens(user_id)
         
         logger.info(
@@ -580,7 +584,7 @@ def api_register():
             
         # Email format validation
         import re
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$'
         if not re.match(email_pattern, email):
             return jsonify({"error": "Please enter a valid email address"}), 400
             
@@ -630,7 +634,6 @@ def api_register():
         cursor.close()
         
         # Generate JWT tokens
-        from src.auth_utils import AuthUtils
         tokens = AuthUtils.generate_tokens(user_id)
         
         logger.info(
@@ -676,7 +679,6 @@ def api_refresh():
         if not refresh_token:
             return jsonify({"error": "Refresh token is required"}), 400
             
-        from src.auth_utils import AuthUtils
         new_tokens = AuthUtils.refresh_access_token(refresh_token)
         
         if not new_tokens:

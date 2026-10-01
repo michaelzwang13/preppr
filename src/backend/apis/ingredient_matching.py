@@ -5,6 +5,7 @@ API endpoints for ingredient fuzzy matching functionality
 from flask import Blueprint, request, jsonify, session
 from src.database import get_db
 from src.services.fuzzy_matching import fuzzy_matching_service, MatchingResult
+from src.services.enhanced_shopping_generation import enhanced_shopping_generator
 from src.logging_config import get_logger
 from datetime import datetime
 import json
@@ -547,8 +548,6 @@ def generate_smart_shopping_list():
         return jsonify({"success": False, "message": "Missing required field: meal_plan_session_id"})
     
     try:
-        from src.services.enhanced_shopping_generation import enhanced_shopping_generator
-        
         result = enhanced_shopping_generator.generate_smart_shopping_list(
             user_id=user_id,
             meal_plan_session_id=data["meal_plan_session_id"],
@@ -587,8 +586,6 @@ def confirm_ingredient_match():
             return jsonify({"success": False, "message": f"Missing required field: {field}"})
     
     try:
-        from src.services.enhanced_shopping_generation import enhanced_shopping_generator
-        
         result = enhanced_shopping_generator.confirm_ingredient_match(
             generation_id=data["generation_id"],
             ingredient_name=data["ingredient_name"],

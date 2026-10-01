@@ -14,7 +14,6 @@ def filter_nutrition_data_by_subscription(user_id, nutrition_data):
     Free tier: calories, protein, fat
     Premium tier: all macro data including carbs, fiber, sodium
     """
-    from src.subscription_utils import get_user_subscription_info
     subscription_info = get_user_subscription_info(user_id)
     is_premium = subscription_info['tier'] == 'premium' and subscription_info['status'] == 'active'
     
@@ -247,26 +246,33 @@ def generate_meal_plan():
     data = request.get_json()
     user_id = session["user_ID"]
 
-    # Check subscription limits first
+    try:
+        days = int(data.get("days", 7))
+        if days < 1 or days > 7:
+            return jsonify({"success": False, "message": "Days must be between 1 and 7"})
+    except (ValueError, TypeError):
+        return jsonify({"success": False, "message": "Invalid number of days"})
+
+    start_date_str = data.get("start_date")
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "Invalid start date format. Use YYYY-MM-DD"})
+    else:
+        start_date = datetime.now().date()
+
+    # Check subscription limits
     try:
         # Check active meal plans limit (3 for free tier)
         check_subscription_limit(user_id, 'meal_plans_active')
         
-        # Check advance planning limit
-        days = int(data.get("days", 7))
-        start_date_str = data.get("start_date")
-        
-        if start_date_str:
-            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-        else:
-            start_date = datetime.now().date()
-        
         # Calculate how many days in advance this plan starts
         days_in_advance = (start_date - datetime.now().date()).days
         
-        # Free tier can't plan more than 7 days in advance
-        if days_in_advance > 7:
-            check_subscription_limit(user_id, 'meal_plans_advance_days')
+        # Free tier can only plan a limited number of days in advance
+        if days_in_advance > 0:
+            check_subscription_limit(user_id, 'meal_plans_advance_days', increment=days_in_advance)
     
     except SubscriptionLimitExceeded as e:
         return jsonify({
@@ -277,8 +283,6 @@ def generate_meal_plan():
             'requires_upgrade': True
         }), 403
 
-    # Required fields (reuse from above checks)
-
     # Optional fields with defaults
     ingredients = data.get("ingredients", [])
     dietary_preference = data.get("dietary_preference", "none")
@@ -287,28 +291,11 @@ def generate_meal_plan():
     minimal_cooking_sessions = data.get("minimal_cooking_sessions", False)
     selected_meals = data.get("selected_meals", None)  # New parameter for meal selection
     # Check if user is premium for enhanced nutrition tracking
-    from src.subscription_utils import get_user_subscription_info
     subscription_info = get_user_subscription_info(user_id)
     is_premium = subscription_info['tier'] == 'premium' and subscription_info['status'] == 'active'
     
     # Enhanced nutrition tracking (including fiber/sodium) for premium users only
     nutrition_tracking_enabled = is_premium
-
-    try:
-        days = int(days)
-        if days < 1 or days > 7:
-            return jsonify({"success": False, "message": "Days must be between 1 and 7"})
-    except (ValueError, TypeError):
-        return jsonify({"success": False, "message": "Invalid number of days"})
-
-    # Parse start date or use today
-    if not start_date:  
-        start_date = datetime.now().date()
-    elif type(start_date) == str:
-        try:
-            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-        except ValueError:
-            return jsonify({"success": False, "message": "Invalid start date format. Use YYYY-MM-DD"})
 
     end_date = start_date + timedelta(days=days - 1)
 
@@ -425,7 +412,6 @@ def generate_meal_plan():
 
         # Check if nutrition tracking is enabled for this user (requires premium for fiber/sodium)
         from src.backend.views.shopping import get_user_preference
-        from src.subscription_utils import get_user_subscription_info
         subscription_info = get_user_subscription_info(user_id)
         is_premium = subscription_info['tier'] == 'premium' and subscription_info['status'] == 'active'
         

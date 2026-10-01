@@ -54,7 +54,7 @@ def retrieve_totals(cart_ID):
     totals = cursor.fetchone()
 
     total_items = totals.get("num_items", 0) if totals else 0
-    total_spent = totals.get("total_spent", 0) if totals else 0
+    total_spent = (totals.get("total_spent") or 0) if totals else 0
 
     return items, total_items, total_spent
 

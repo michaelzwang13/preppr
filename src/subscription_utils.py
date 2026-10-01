@@ -90,12 +90,28 @@ def get_tier_limit(tier, feature_name):
     finally:
         cursor.close()
 
+# Limits on how many of something a user has right now. Usage is counted from
+# the live rows, so deleting a pantry item, recipe or plan frees up its slot.
+COUNTED_LIMITS = {
+    'pantry_items': "SELECT COUNT(*) AS n FROM pantry_items WHERE user_id = %s AND is_consumed = FALSE",
+    'saved_recipes': "SELECT COUNT(*) AS n FROM saved_recipes WHERE user_id = %s",
+    'meal_plans_active': "SELECT COUNT(*) AS n FROM meal_plan_sessions WHERE user_id = %s AND end_date >= CURDATE()",
+}
+
+# Limits on the size of a single request rather than on accumulated usage; the
+# caller passes the requested amount as the increment.
+PER_REQUEST_LIMITS = {'meal_plans_advance_days'}
+
 def get_current_usage(user_id, limit_type):
     """Get current usage for a specific limit type"""
     db = get_db()
     cursor = db.cursor()
     
     try:
+        if limit_type in COUNTED_LIMITS:
+            cursor.execute(COUNTED_LIMITS[limit_type], (user_id,))
+            return cursor.fetchone()['n']
+
         query = """
         SELECT current_usage, last_reset_date
         FROM subscription_limits 
@@ -105,10 +121,12 @@ def get_current_usage(user_id, limit_type):
         result = cursor.fetchone()
         
         if not result:
-            # Initialize usage tracking if doesn't exist
+            # Initialize usage tracking if doesn't exist. A concurrent request
+            # may have just created the row, so make the insert a no-op then.
             insert_query = """
             INSERT INTO subscription_limits (user_id, limit_type, current_usage, last_reset_date)
             VALUES (%s, %s, 0, CURRENT_DATE)
+            ON DUPLICATE KEY UPDATE user_id = user_id
             """
             cursor.execute(insert_query, (user_id, limit_type))
             db.commit()
@@ -145,6 +163,9 @@ def get_current_usage(user_id, limit_type):
 
 def increment_usage(user_id, limit_type, increment=1):
     """Increment usage counter for a specific limit type"""
+    if limit_type in COUNTED_LIMITS:
+        return  # usage is counted from the live rows
+
     db = get_db()
     cursor = db.cursor()
     
@@ -179,7 +200,10 @@ def check_subscription_limit(user_id, feature_name, increment=1):
         return True
     
     # Get current usage
-    current_usage = get_current_usage(user_id, feature_name)
+    if feature_name in PER_REQUEST_LIMITS:
+        current_usage = 0
+    else:
+        current_usage = get_current_usage(user_id, feature_name)
     
     # Check if adding the increment would exceed the limit
     if current_usage + increment > limit:
@@ -195,7 +219,7 @@ def get_upgrade_message(feature_name):
     """Get contextual upgrade message for different features"""
     messages = {
         'meal_plans_active': "You've reached your free meal plan limit — unlock unlimited plans with Preppr Premium!",
-        'pantry_items': "You've reached your 50 item pantry limit — upgrade to Premium for unlimited pantry storage!",
+        'pantry_items': "You've reached your 100 item pantry limit — upgrade to Premium for unlimited pantry storage!",
         'shopping_lists_per_day': "You've reached your daily shopping list limit — upgrade to Premium for unlimited list generation!",
         'saved_recipes': "You've reached your 10 recipe limit — save unlimited recipes with Preppr Premium!",
         'upc_scans_per_trip': "You've reached your UPC scan limit for this trip — upgrade to Premium for unlimited scanning!",
@@ -379,7 +403,7 @@ def reset_daily_limits(user_id):
         reset_query = """
         UPDATE subscription_limits 
         SET current_usage = 0, last_reset_date = CURRENT_DATE
-        WHERE user_id = %s AND limit_type LIKE '%_per_day'
+        WHERE user_id = %s AND limit_type LIKE '%%_per_day'
         """
         cursor.execute(reset_query, (user_id,))
         db.commit()
