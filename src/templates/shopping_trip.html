@@ -1299,16 +1299,10 @@
   <script>
     // Pass server data to JavaScript
     window.SHOPPING_TRIP_CONFIG = {
-      allocatedBudget: JSON.parse(
-        "{{ allocated_budget | default(1000) | tojson }}"
-      ),
-      remainingBudget: JSON.parse("{{ remaining | default(1000) | tojson }}"),
-      cartSessionExists: JSON.parse(
-        '{{ cart_session | default(false) | tojson }}'
-      ),
-      cartId: JSON.parse(
-        "{{ cart_session.cart_ID if cart_session else null }}"
-      ),
+      allocatedBudget: {{ allocated_budget | default(1000) | float }},
+      remainingBudget: {{ remaining | default(1000) | float }},
+      cartSessionExists: {{ (cart_session is not none) | tojson }},
+      cartId: {{ (cart_session.cart_ID if cart_session else none) | tojson }},
       urls: {
         getCartItems: "{{ url_for('shopping_trip.get_cart_items') }}",
         searchItem: "{{ url_for('shopping_trip.searchitem') }}",
