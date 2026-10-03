@@ -147,6 +147,16 @@ def app():
             os.environ.pop("DB_NAME", None)
 
 
+@pytest.fixture(autouse=True)
+def _push_request_context():
+    """Override pytest-flask's autouse fixture of the same name, if installed.
+
+    It keeps one request context open for the whole test, so the app's per-request
+    DB connection (flask.g) is reused across requests and reads a stale snapshot
+    that misses rows the test inserted. Each request must get its own context.
+    """
+
+
 @pytest.fixture
 def client(app):
     """A test client for the app."""
