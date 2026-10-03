@@ -6,7 +6,7 @@ Provides structured logging with different levels and proper formatting.
 import logging
 import logging.config
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any
 
 
@@ -16,7 +16,7 @@ class JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """Format log record as JSON"""
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -153,7 +153,7 @@ class RequestLogger:
         self.start_time = None
 
     def __enter__(self):
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(timezone.utc)
         self.logger.info(
             "Request started",
             extra={
@@ -166,7 +166,7 @@ class RequestLogger:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        duration = (datetime.utcnow() - self.start_time).total_seconds() * 1000
+        duration = (datetime.now(timezone.utc) - self.start_time).total_seconds() * 1000
 
         if exc_type is None:
             self.logger.info(

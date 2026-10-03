@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, session
 from src.database import get_db
 from datetime import datetime, timedelta
-import random
+import zlib
 
 tips_bp = Blueprint("tips", __name__, url_prefix="/api")
 
@@ -52,7 +52,10 @@ def get_daily_tip():
                 }
             })
         
-        # No tip for current period, get a new one
+        # No tip for current period, get a new one. Seed the random pick with the
+        # user and period so concurrent requests in this period choose the same tip.
+        tip_seed = zlib.crc32(f"{user_id}:{period_start.isoformat()}".encode())
+
         # First check if user has any tip history at all
         history_check = """
             SELECT COUNT(*) as count
@@ -68,10 +71,10 @@ def get_daily_tip():
                 SELECT tip_id, tip_text, tip_category
                 FROM tips
                 WHERE is_active = TRUE
-                ORDER BY RAND()
+                ORDER BY RAND(%s)
                 LIMIT 1
             """
-            cursor.execute(query)
+            cursor.execute(query, (tip_seed,))
             tip = cursor.fetchone()
         else:
             # Existing user - get tips that haven't been shown in the last 10 days
@@ -83,11 +86,11 @@ def get_daily_tip():
                 LEFT JOIN user_tip_history uth ON t.tip_id = uth.tip_id AND uth.user_id = %s
                 WHERE t.is_active = TRUE 
                 AND (uth.shown_at IS NULL OR uth.shown_at < %s)
-                ORDER BY RAND()
+                ORDER BY RAND(%s)
                 LIMIT 1
             """
             
-            cursor.execute(query, (user_id, cutoff_date))
+            cursor.execute(query, (user_id, cutoff_date, tip_seed))
             tip = cursor.fetchone()
             
             if not tip:

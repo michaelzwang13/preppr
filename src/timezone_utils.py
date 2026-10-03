@@ -56,7 +56,7 @@ def get_user_current_date(user_id: str) -> date:
         tz = pytz.timezone(user_timezone)
         
         # Get current UTC time and convert to user's timezone
-        utc_now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        utc_now = datetime.now(pytz.UTC)
         user_now = utc_now.astimezone(tz)
         
         return user_now.date()
@@ -64,7 +64,7 @@ def get_user_current_date(user_id: str) -> date:
     except Exception as e:
         logger.error(f"Error getting current date for user {user_id}: {str(e)}")
         # Fallback to UTC
-        return datetime.utcnow().date()
+        return datetime.now(pytz.UTC).date()
 
 def get_user_current_datetime(user_id: str) -> datetime:
     """
@@ -81,7 +81,7 @@ def get_user_current_datetime(user_id: str) -> datetime:
         tz = pytz.timezone(user_timezone)
         
         # Get current UTC time and convert to user's timezone
-        utc_now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        utc_now = datetime.now(pytz.UTC)
         user_now = utc_now.astimezone(tz)
         
         return user_now
@@ -89,7 +89,7 @@ def get_user_current_datetime(user_id: str) -> datetime:
     except Exception as e:
         logger.error(f"Error getting current datetime for user {user_id}: {str(e)}")
         # Fallback to UTC
-        return datetime.utcnow().replace(tzinfo=pytz.UTC)
+        return datetime.now(pytz.UTC)
 
 
 def get_timezone_display_name(timezone_str: str) -> str:

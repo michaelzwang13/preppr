@@ -412,8 +412,8 @@ def create_saved_recipe():
             INSERT INTO saved_recipes (
                 user_id, recipe_name, description, meal_type, prep_time, cook_time,
                 servings, difficulty, instructions, cuisine_type, notes,
-                estimated_cost, calories_per_serving, custom_tags
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                estimated_cost, calories_per_serving, custom_tags, is_favorite
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         cursor.execute(insert_recipe_query, (
             user_id,
@@ -429,7 +429,8 @@ def create_saved_recipe():
             data.get("notes"),
             data.get("estimated_cost"),
             data.get("calories_per_serving"),
-            json.dumps(data.get("custom_tags", []))
+            json.dumps(data.get("custom_tags", [])),
+            bool(data.get("is_favorite", False))
         ))
         
         saved_recipe_id = cursor.lastrowid
